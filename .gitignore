@@ -142,6 +142,12 @@ dmypy.json
 # Cython debug symbols
 cython_debug/
 
+# GMAIL STUFF
+client_secret.json
+gmail_token.json
+
+# EXCEL STUFF
+den_uitvlucht.xlsx
 
 # End of https://www.toptal.com/developers/gitignore/api/python
 

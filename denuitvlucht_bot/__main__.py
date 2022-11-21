@@ -12,10 +12,10 @@ from aiogram.utils.callback_data import CallbackData
 from aiogram.types import InlineKeyboardMarkup
 from aiogram.utils.exceptions import MessageNotModified
 
-from data import read_from_aanbod_json, write_to_aanbod_json
+from data.json_helper import read_from_aanbod_json, write_to_aanbod_json
 
 # Define paths
-AANBOD_JSON = os.path.join(os.getcwd(), 'aanbod.json')
+AANBOD_JSON = os.path.join(os.getcwd(), 'denuitvlucht_bot', 'data', 'aanbod.json')
 
 # Load API TOKEN
 load_dotenv()
