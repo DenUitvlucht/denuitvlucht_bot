@@ -9,8 +9,9 @@ from datetime import datetime as dt
 
 from aiogram import Bot, Dispatcher, executor, types
 from aiogram.utils.callback_data import CallbackData
-from aiogram.types import InlineKeyboardMarkup
+from aiogram.types import InlineKeyboardMarkup, ParseMode
 from aiogram.utils.exceptions import MessageNotModified
+
 
 from data.json_helper import read_from_aanbod_json, write_to_aanbod_json
 
@@ -20,7 +21,8 @@ AANBOD_JSON = os.path.join(os.getcwd(), 'denuitvlucht_bot', 'data', 'aanbod.json
 # Load API TOKEN
 load_dotenv()
 API_TOKEN = os.getenv('API_TOKEN')
-BESTUUR_IDS= os.getenv('BESTUUR_IDS').split(',')
+BESTUUR_IDS = os.getenv('BESTUUR_IDS').split(',')
+CHAT_ID = os.getenv('CHAT_ID').split(',')
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -111,7 +113,7 @@ def get_edit_keyboard(amount, name, category):  # Keyboard to change amounts
 @dp.message_handler(commands=['denuitvlucht'])  # Start handler
 async def cmd_start(message: types.Message):
     
-    if str(message.from_id) in BESTUUR_IDS:
+    if str(message.from_id) in BESTUUR_IDS and str(message.chat.id) in CHAT_ID:
 
         await message.reply(f'Dag bestuurslid, wat kan ik voor je doen?', reply_markup=get_intro_keyboard())
     
@@ -128,7 +130,7 @@ async def intro_callback(query: types.CallbackQuery, callback_data: typing.Dict[
 
     await bot.edit_message_text(
         'Dag bestuurslid, wat kan ik voor je doen?',
-        query.from_user.id,
+        query.message.chat.id,
         query.message.message_id,
         reply_markup=get_intro_keyboard()
     )
@@ -138,11 +140,12 @@ async def intro_callback(query: types.CallbackQuery, callback_data: typing.Dict[
 @dp.callback_query_handler(brouwer_cd.filter(action=['brouwer_keyboard']))
 async def brouwer_callback(query: types.CallbackQuery, callback_data: typing.Dict[str, str]):
 
+
     await query.answer()
 
     await bot.edit_message_text(
         'Dag brouwer, dit zijn jouw opties:\n',
-        query.from_user.id,
+        query.message.chat.id,
         query.message.message_id,
         reply_markup=get_brouwer_keyboard()
     )
@@ -159,7 +162,7 @@ async def brouwer_edit_bestelling_callback(query: types.CallbackQuery, callback_
 
     await bot.edit_message_text(
         f'Dit is jullie huidige bestelling.\nKlik op de categorie die je wil aanpassen!',
-        query.from_user.id,
+        query.message.chat.id,
         query.message.message_id,
         reply_markup=get_brouwer_category_keyboard(amount=amount, name=name)
     )
@@ -172,7 +175,7 @@ async def brouwer_edit_bestelling_callback(query: types.CallbackQuery, callback_
     await query.answer()
 
     await bot.edit_message_text(f"Categorie {callback_data['category']}",
-                                query.from_user.id,
+                                query.message.chat.id,
                                 query.message.message_id,
                                 reply_markup=get_brouwer_edit_category_keyboard(amount=callback_data['amount'], name=callback_data['name'], category=callback_data['category']))
 
@@ -182,10 +185,10 @@ async def brouwer_edit_bestelling_callback(query: types.CallbackQuery, callback_
 
     await query.answer()
 
-    await bot.edit_message_text(f"Momenteel staan er {callback_data['amount']} bakken {callback_data['name']} in de bestelling",
-                                query.from_user.id,
+    await bot.edit_message_text(f"Momenteel staan er *{callback_data['amount']}* bakken *{callback_data['name']}* in de bestelling",
+                                query.message.chat.id,
                                 query.message.message_id,
-                                reply_markup=get_edit_keyboard(amount=callback_data['amount'], name=callback_data['name'], category=callback_data['category']))
+                                reply_markup=get_edit_keyboard(amount=callback_data['amount'], name=callback_data['name'], category=callback_data['category']), parse_mode=ParseMode.MARKDOWN)
 
 
 @dp.callback_query_handler(item_cd.filter(action='plus'))  # Increment amount
@@ -196,10 +199,10 @@ async def vote_plus_cb_handler(query: types.CallbackQuery, callback_data: dict):
     amount = int(callback_data['amount'])
     amount += 1
 
-    await bot.edit_message_text(f'Aantal aangepast! Er staan nu {amount} bakken {name} in de bestelling.',
-                                query.from_user.id,
+    await bot.edit_message_text(f'Aantal aangepast! Er staan nu *{amount}* bakken *{name}* in de bestelling.',
+                                query.message.chat.id,
                                 query.message.message_id,
-                                reply_markup=get_edit_keyboard(amount, callback_data['name'], category))
+                                reply_markup=get_edit_keyboard(amount, callback_data['name'], category), parse_mode=ParseMode.MARKDOWN)
 
 
 @dp.callback_query_handler(item_cd.filter(action='minus'))  # Decrease amount
@@ -210,10 +213,12 @@ async def vote_minus_cb_handler(query: types.CallbackQuery, callback_data: dict)
     category = callback_data['category']
     amount -= 1 if amount > 0 else 0
 
-    await bot.edit_message_text(f'Aantal aangepast! Er staan nu {amount} bakken {name} in de bestelling.',
-                                query.from_user.id,
-                                query.message.message_id,
-                                reply_markup=get_edit_keyboard(amount, callback_data['name'], category=category))
+    if amount > -1:
+
+        await bot.edit_message_text(f'Aantal aangepast! Er staan nu *{amount}* bakken *{name}* in de bestelling.',
+                                    query.message.chat.id,
+                                    query.message.message_id,
+                                    reply_markup=get_edit_keyboard(amount, callback_data['name'], category=category), parse_mode=ParseMode.MARKDOWN)
 
 
 # handle the cases when this exception raises
