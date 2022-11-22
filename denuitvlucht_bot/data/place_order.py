@@ -45,6 +45,7 @@ sheet = workbook.active
 
 # FILL EXCEL FILE WITH AMOUNTS AND SAVE
 
+valid = False
 for category in bestelling_json:
 
     for item in bestelling_json[category]:
