@@ -19,7 +19,8 @@ CHAT_ID = os.getenv('CHAT_ID')
 ORDER_OUTPUT = os.path.join(
     os.getcwd(), 'denuitvlucht_bot', 'output', 'order.xlsx')
 
-today = datetime.datetime.today().strftime('_%d_%m_%y')
+next_tuesday = datetime.datetime.today() + datetime.timedelta(days=5)
+next_tuesday_formatted = next_tuesday.strftime('_%d_%m_%y')
 
 gmail = Gmail()
 
@@ -34,7 +35,7 @@ async def notify_bestuur(info):
 
     info.attachments[0].save(filepath=ORDER_OUTPUT)
 
-    order = InputFile(ORDER_OUTPUT, filename=f"order{today}.xlsx")
+    order = InputFile(ORDER_OUTPUT, filename=f"order{next_tuesday_formatted}.xlsx")
 
     await bot.send_document(chat_id=CHAT_ID, document=order, caption=f"❗ BESTELLING GEPLAATST ❗\n\nDag bestuursleden, ik heb daarnet jullie bestelling geplaatst. Hierboven vindt je het Excel bestand dat ik naar de brouwer heb gestuurd.\nJullie krijgen dit bericht elke donderdagavond.")
 
