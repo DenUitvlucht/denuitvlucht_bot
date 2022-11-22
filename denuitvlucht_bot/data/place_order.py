@@ -49,8 +49,14 @@ for category in bestelling_json:
 
     for item in bestelling_json[category]:
 
-        sheet[item['excel_location']
-              ] = item['amount'] if item['amount'] != '0' else ''
+        if item['amount'] != '0':
+
+            valid = True
+        
+        if valid:
+
+            sheet[item['excel_location']
+                ] = item['amount'] if item['amount'] != '0' else ''
 
 workbook.save(filename=BESTELLING_EXCEL_OUTPUT)
 

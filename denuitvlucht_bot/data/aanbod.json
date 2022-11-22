@@ -42,7 +42,7 @@
         },
         {
             "name": "Westmalle Tripel",
-            "amount": "4",
+            "amount": "0",
             "excel_location": "C64"
         }
     ],
@@ -91,7 +91,7 @@
         },
         {
             "name": "Straal Bruis",
-            "amount": "1",
+            "amount": "0",
             "excel_location": "K40"
         },
         {
