@@ -9,6 +9,7 @@ from simplegmail import Gmail
 from simplegmail.query import construct_query
 from aiogram import Bot, Dispatcher
 from aiogram.types.input_file import InputFile
+from aiogram.types import ParseMode
 
 from dotenv import load_dotenv
 
@@ -37,7 +38,7 @@ async def notify_bestuur(info):
 
     order = InputFile(ORDER_OUTPUT, filename=f"order{next_tuesday_formatted}.xlsx")
 
-    await bot.send_document(chat_id=CHAT_ID, document=order, caption=f"❗ BESTELLING GEPLAATST ❗\n\nDag bestuursleden, ik heb daarnet jullie bestelling geplaatst. Hierboven vindt je het Excel bestand dat ik naar de brouwer heb gestuurd.\nJullie krijgen dit bericht elke donderdagavond.")
+    await bot.send_document(chat_id=CHAT_ID, document=order, caption=f"❗ *BESTELLING GEPLAATST* ❗\n\nDag bestuursleden, ik heb daarnet jullie bestelling geplaatst.\n\nHierboven vindt je het Excel bestand dat ik naar de brouwer heb gestuurd.\n\nJullie krijgen dit bericht elke donderdagavond.", parse_mode=ParseMode.MARKDOWN)
 
     os.remove(ORDER_OUTPUT)
 

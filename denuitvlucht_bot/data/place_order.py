@@ -58,6 +58,9 @@ for category in bestelling_json:
 
             sheet[item['excel_location']
                 ] = item['amount'] if item['amount'] != '0' else ''
+        else:
+
+            exit(1)
 
 workbook.save(filename=BESTELLING_EXCEL_OUTPUT)
 
