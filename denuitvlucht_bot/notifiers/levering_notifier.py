@@ -1,4 +1,6 @@
 
+#!/usr/bin/python3
+
 # CRONTAB FOR THIS FILE: 0 18 * * 2
 
 import os
