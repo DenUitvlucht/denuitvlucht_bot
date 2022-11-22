@@ -16,9 +16,22 @@ pip -r requirements.txt
 - Google is your friend
 
 ## Usage
-
+### BOT
 ```bash
-python bot.py
+python denuitvlucht_bot
+```
+
+### Place Order
+```bash
+python denuitvlucht_bot/data/place_order.py
+```
+
+### Notifiers
+```bash
+python denuitvlucht_bot/notifiers/order_notifier.py
+```
+```bash
+python denuitvlucht_bot/notifiers/levering_notifier.py
 ```
 
 ## Contributing
