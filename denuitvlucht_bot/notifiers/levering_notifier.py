@@ -27,7 +27,7 @@ today = datetime.datetime.today().strftime('_%d_%m_%y')
 gmail = Gmail()
 
 query_params = {
-    "newer_than": (10, "day"),
+    "newer_than": (1, "day"),
 }
 
 messages = gmail.get_messages(query=construct_query(query_params))
