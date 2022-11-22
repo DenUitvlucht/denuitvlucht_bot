@@ -20,6 +20,7 @@ AANBOD_JSON = os.path.join(os.getcwd(), 'denuitvlucht_bot', 'data', 'aanbod.json
 # Load API TOKEN
 load_dotenv()
 API_TOKEN = os.getenv('API_TOKEN')
+BESTUUR_IDS= os.getenv('BESTUUR_IDS').split(',')
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -109,8 +110,14 @@ def get_edit_keyboard(amount, name, category):  # Keyboard to change amounts
 # Handlers
 @dp.message_handler(commands=['denuitvlucht'])  # Start handler
 async def cmd_start(message: types.Message):
+    
+    if str(message.from_id) in BESTUUR_IDS:
 
-    await message.reply(f'Dag bestuurslid, wat kan ik voor je doen?', reply_markup=get_intro_keyboard())
+        await message.reply(f'Dag bestuurslid, wat kan ik voor je doen?', reply_markup=get_intro_keyboard())
+    
+    else:
+
+        await message.reply(f'Sorry deze bot kan enkel gebruikt worden in de bestuursgroep, door een toegelaten bestuurslid.')
 
 
 # Main options for bestuur
