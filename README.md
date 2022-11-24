@@ -1,5 +1,6 @@
 # Den Uitvlucht Telegram Bot
 Telegram Bot that can perform various 'bestuurstaken'
+Scope is limited to 'brouwerstaken' for now.
 
 ## Motivation
 
@@ -9,11 +10,15 @@ Laziness
 ### Install requirements
 
 ```bash
-pip -r requirements.txt
+pip install -r requirements.txt
 ```
-### Add your Telegram API Token to ENV
+### Add environment variables
 
-- Google is your friend
+- Telegram Bot API Token (API_TOKEN)
+- Telegram Chat ID (CHAT_ID)
+- Allowed Users (BESTUUR_IDS)
+- Sender (FROM)
+- Receiver (TO)
 
 ## Usage
 ### BOT
