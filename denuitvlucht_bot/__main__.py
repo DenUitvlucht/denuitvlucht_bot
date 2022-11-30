@@ -244,7 +244,7 @@ async def rvb_list_callback(query: types.CallbackQuery):
     for item in rvb_list['puntjes']:
 
         overzicht.append(
-            f'- {item["subject"]} | Toegevoegd op {item["date"]} \n')
+            f'- {item["subject"]} | Toegevoegd op {item["date"]} \n\n')
 
     if len(overzicht) > 0:
 
