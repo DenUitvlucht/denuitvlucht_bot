@@ -6,7 +6,7 @@ import datetime
 
 from openpyxl import load_workbook
 
-from json_helper import read_from_aanbod_json, write_to_aanbod_json
+from json_helper import read_from_json, write_to_json
 
 from simplegmail import Gmail
 
@@ -31,7 +31,7 @@ BESTELLING_EXCEL_OUTPUT = os.path.join(
 
 # READ BESTELLING FOR JSON
 
-bestelling_json = read_from_aanbod_json(
+bestelling_json = read_from_json(
     path=BESTELLING_JSON_LOCATION
 )
 
@@ -94,7 +94,7 @@ for category in bestelling_json:
 
         item['amount'] = '0'
 
-write_to_aanbod_json(
+write_to_json(
     path=BESTELLING_JSON_LOCATION,
     data=bestelling_json
 )
