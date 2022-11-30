@@ -91,7 +91,7 @@ def get_brouwer_edit_category_keyboard(name, amount, category):
 
     for optie in aanbod[category]:
 
-        type = 'bakken' if 'Liter' not in optie['name'] else 'vaten'
+        type = 'bak(ken)' if 'Liter' not in optie['name'] else 'vat(en)'
 
         keyboard.row(types.InlineKeyboardButton(
             text=f"{optie['name']} | {optie['price']} | {optie['amount']} {type}", callback_data=item_cd.new(action=f'edit_item', name=optie['name'], amount=optie['amount'], category=category)))
@@ -181,7 +181,7 @@ async def brouwer_edit_bestelling_callback(query: types.CallbackQuery, callback_
     amount = None if callback_data['amount'] == '' else callback_data['amount']
 
     await bot.edit_message_text(
-        f'Dit is jullie huidige bestelling.\nKlik op de categorie die je wil aanpassen!',
+        f'Klik op de categorie die je wil aanpassen!',
         query.message.chat.id,
         query.message.message_id,
         reply_markup=get_brouwer_category_keyboard(amount=amount, name=name)
