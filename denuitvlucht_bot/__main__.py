@@ -41,13 +41,13 @@ item_cd = CallbackData('vote', 'action', 'name', 'amount', 'category')
 def get_intro_keyboard():  # Main options for bestuur
     return types.InlineKeyboardMarkup().row(
         types.InlineKeyboardButton(
-            'Brouwer', callback_data=brouwer_cd.new(action='brouwer_keyboard'))
+            '🍺 Brouwer', callback_data=brouwer_cd.new(action='brouwer_keyboard'))
     )
 
 
 def get_brouwer_keyboard():  # Brouwer keyboard with option(s)
     return types.InlineKeyboardMarkup().row(
-        types.InlineKeyboardButton('Huidige bestelling', callback_data=item_cd.new(
+        types.InlineKeyboardButton('Bestelling aanpassen/toevoegen', callback_data=item_cd.new(
             action='brouwer_edit_current_order_category', name='', amount='', category='')),
     ).row(types.InlineKeyboardButton('⬅️ Terug', callback_data=brouwer_cd.new(action='denuitvlucht')))
 
@@ -91,8 +91,10 @@ def get_brouwer_edit_category_keyboard(name, amount, category):
 
     for optie in aanbod[category]:
 
+        type = 'bakken' if 'Liter' not in optie['name'] else 'vaten'
+
         keyboard.row(types.InlineKeyboardButton(
-            text=f"{optie['name']} | {optie['amount']} bakken", callback_data=item_cd.new(action=f'edit_item', name=optie['name'], amount=optie['amount'], category=category)))
+            text=f"{optie['name']} | {optie['price']} | {optie['amount']} {type}", callback_data=item_cd.new(action=f'edit_item', name=optie['name'], amount=optie['amount'], category=category)))
 
     keyboard.row(types.InlineKeyboardButton('⬅️ Terug', callback_data=item_cd.new(
         action='brouwer_edit_current_order_category', name='', amount='', category=category)))
@@ -145,8 +147,24 @@ async def brouwer_callback(query: types.CallbackQuery, callback_data: typing.Dic
 
     await query.answer()
 
+    aanbod = read_from_aanbod_json(path=AANBOD_JSON)
+
+    overzicht = []
+    count = 0
+    for category in aanbod:
+        
+        for best in aanbod[category]:
+            
+            if int(best['amount']) > 0:
+                
+                type = 'bak(ken)' if 'Liter' not in best['name'] else 'vat(en)'
+                overzicht.append(f'- {best["name"]} | {best["amount"]} {type}\n')
+                count += 1
+    
+    text = 'Dag brouwer, dit is je huidige bestelling:\n\n' if count > 0 else 'Dag brouwer, momenteel staat er geen bestelling klaar.'
+
     await bot.edit_message_text(
-        'Dag brouwer, dit zijn jouw opties:\n',
+        f'{text}{"".join(overzicht)}\nDruk op onderstaande knop om de bestelling aan te passen of toe te voegen.',
         query.message.chat.id,
         query.message.message_id,
         reply_markup=get_brouwer_keyboard()
@@ -187,7 +205,9 @@ async def brouwer_edit_bestelling_callback(query: types.CallbackQuery, callback_
 
     await query.answer()
 
-    await bot.edit_message_text(f"Momenteel staan er *{callback_data['amount']}* bakken *{callback_data['name']}* in de bestelling",
+    type = 'bak(ken)' if 'Liter' not in callback_data['name'] else 'vat(en)'
+
+    await bot.edit_message_text(f"Momenteel staan er *{callback_data['amount']}* {type} *{callback_data['name']}* in de bestelling",
                                 query.message.chat.id,
                                 query.message.message_id,
                                 reply_markup=get_edit_keyboard(amount=callback_data['amount'], name=callback_data['name'], category=callback_data['category']), parse_mode=ParseMode.MARKDOWN)
@@ -201,7 +221,9 @@ async def vote_plus_cb_handler(query: types.CallbackQuery, callback_data: dict):
     amount = int(callback_data['amount'])
     amount += 1
 
-    await bot.edit_message_text(f'Aantal aangepast! Er staan nu *{amount}* bakken *{name}* in de bestelling.',
+    type = 'bak(ken)' if 'Liter' not in callback_data['name'] else 'vat(en)'
+
+    await bot.edit_message_text(f'Aantal aangepast! Er staan nu *{amount}* {type} *{name}* in de bestelling.',
                                 query.message.chat.id,
                                 query.message.message_id,
                                 reply_markup=get_edit_keyboard(amount, callback_data['name'], category), parse_mode=ParseMode.MARKDOWN)
@@ -215,9 +237,11 @@ async def vote_minus_cb_handler(query: types.CallbackQuery, callback_data: dict)
     category = callback_data['category']
     amount -= 1 if amount > 0 else 0
 
+    type = 'bak(ken)' if 'Liter' not in callback_data['name'] else 'vat(en)'
+
     if amount > -1:
 
-        await bot.edit_message_text(f'Aantal aangepast! Er staan nu *{amount}* bakken *{name}* in de bestelling.',
+        await bot.edit_message_text(f'Aantal aangepast! Er staan nu *{amount}* {type} *{name}* in de bestelling.',
                                     query.message.chat.id,
                                     query.message.message_id,
                                     reply_markup=get_edit_keyboard(amount, callback_data['name'], category=category), parse_mode=ParseMode.MARKDOWN)
