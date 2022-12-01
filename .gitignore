@@ -149,6 +149,7 @@ gmail_token.json
 # OTHER JSON STUFF
 rvb_puntjes.json
 aanbod.json
+wc_shift.json
 
 # End of https://www.toptal.com/developers/gitignore/api/python
 
