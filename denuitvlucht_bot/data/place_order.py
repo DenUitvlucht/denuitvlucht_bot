@@ -49,9 +49,9 @@ valid = False
 for category in bestelling_json:
 
     for item in bestelling_json[category]:
-
+        
         if item['amount'] != '0':
-
+            print(item['name'])
             valid = True
         
         if valid:
