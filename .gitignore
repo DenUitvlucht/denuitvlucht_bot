@@ -146,7 +146,9 @@ cython_debug/
 client_secret.json
 gmail_token.json
 
+# OTHER JSON STUFF
 rvb_puntjes.json
+aanbod.json
 
 # End of https://www.toptal.com/developers/gitignore/api/python
 

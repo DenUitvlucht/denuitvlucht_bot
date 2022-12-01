@@ -47,13 +47,13 @@ def get_intro_keyboard():  # Main options for bestuur
     return types.InlineKeyboardMarkup().row(
         types.InlineKeyboardButton(
             '🍺 Brouwer', callback_data=brouwer_cd.new(action='brouwer_keyboard'))).row(types.InlineKeyboardButton(
-                '✔️ RVB-puntjes', callback_data=rvb_cd.new(action='rvb_list'))
+                '📖 RVB-puntjes', callback_data=rvb_cd.new(action='rvb_list'))
     )
 
 
 def get_brouwer_keyboard():  # Brouwer keyboard with option(s)
     return types.InlineKeyboardMarkup().row(
-        types.InlineKeyboardButton('Bestelling aanpassen/toevoegen', callback_data=item_cd.new(
+        types.InlineKeyboardButton('🖊️ Bestelling aanpassen/toevoegen', callback_data=item_cd.new(
             action='brouwer_edit_current_order_category', name='', amount='', category='')),
     ).row(types.InlineKeyboardButton('⬅️ Terug', callback_data=brouwer_cd.new(action='denuitvlucht')))
 

@@ -1,6 +1,6 @@
 # Den Uitvlucht Telegram Bot
 Telegram Bot that can perform various 'bestuurstaken'
-Scope is limited to 'brouwerstaken' for now.
+Scope is limited to 'brouwerstaken' and 'extra puntjes' for now.
 
 ## Motivation
 
