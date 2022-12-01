@@ -21,6 +21,8 @@ AANBOD_JSON = os.path.join(
     os.getcwd(), 'denuitvlucht_bot', 'data', 'aanbod.json')
 RVB_JSON = os.path.join(
     os.getcwd(), 'denuitvlucht_bot', 'data', 'rvb_puntjes.json')
+WC_JSON = os.path.join(
+    os.getcwd(), 'denuitvlucht_bot', 'data', 'wc_shift.json')
 
 # Load API TOKEN
 load_dotenv()
@@ -39,6 +41,7 @@ dp = Dispatcher(bot)
 brouwer_cd = CallbackData('vote', 'action')
 item_cd = CallbackData('vote', 'action', 'name', 'amount', 'category')
 rvb_cd = CallbackData('vote', 'action')
+wc_cd = CallbackData('vote', 'action')
 
 # Keyboards
 
@@ -47,7 +50,8 @@ def get_intro_keyboard():  # Main options for bestuur
     return types.InlineKeyboardMarkup().row(
         types.InlineKeyboardButton(
             '🍺 Brouwer', callback_data=brouwer_cd.new(action='brouwer_keyboard'))).row(types.InlineKeyboardButton(
-                '📖 RVB-puntjes', callback_data=rvb_cd.new(action='rvb_list'))
+                '📖 RVB-puntjes', callback_data=rvb_cd.new(action='rvb_list'))).row(types.InlineKeyboardButton(
+                '🚽 WC-shift', callback_data=wc_cd.new(action='wc_shift'))
     )
 
 
@@ -56,6 +60,12 @@ def get_brouwer_keyboard():  # Brouwer keyboard with option(s)
         types.InlineKeyboardButton('🖊️ Bestelling aanpassen/toevoegen', callback_data=item_cd.new(
             action='brouwer_edit_current_order_category', name='', amount='', category='')),
     ).row(types.InlineKeyboardButton('⬅️ Terug', callback_data=brouwer_cd.new(action='denuitvlucht')))
+
+def get_wc_keyboard():  # Brouwer keyboard with option(s)
+    return types.InlineKeyboardMarkup().row(
+        types.InlineKeyboardButton('⏩ Volgende shift', callback_data=wc_cd.new(
+            action='next_wc_shift')),
+    ).row(types.InlineKeyboardButton('⬅️ Terug', callback_data=wc_cd.new(action='denuitvlucht')))
 
 
 def get_rvb_list_keyboard():  # Brouwer keyboard with option(s)
@@ -266,6 +276,59 @@ async def rvb_list_callback(query: types.CallbackQuery):
             reply_markup=get_rvb_list_keyboard_alt()
         )
 
+# WC SHIFT
+@dp.callback_query_handler(wc_cd.filter(action=['wc_shift']))
+async def wc_shift_callback(query: types.CallbackQuery):
+
+    await query.answer()
+
+    shifts = read_from_json(path=WC_JSON)
+
+    # search for person with has_to_clean == true
+    for shift in shifts['shifts']:
+
+        if shift['has_to_clean'] == True:
+
+            has_to_clean = shift['name']
+
+    await bot.edit_message_text(
+            f'🚽 *{has_to_clean}* moet deze week de WC kuisen. Veel kuisplezier!',
+            query.message.chat.id,
+            query.message.message_id,
+            reply_markup=get_wc_keyboard(),
+            parse_mode=ParseMode.MARKDOWN
+        )
+
+# WC SHIFT NEXT
+@dp.callback_query_handler(wc_cd.filter(action='next_wc_shift'))
+async def next_wc_shift_handler(query: types.CallbackQuery, callback_data: dict):
+
+    shifts = read_from_json(path=WC_JSON)
+    
+    for index, shift in enumerate(shifts['shifts']):
+
+        if shift['has_to_clean'] == True:
+
+            shift['has_to_clean'] = False
+
+            if shifts['shifts'].index(shift) < len(shifts['shifts']) -1:
+
+                shifts['shifts'][index+1]['has_to_clean'] = True 
+                has_to_clean = shifts['shifts'][index+1]['name']
+            else:
+                shifts['shifts'][0]['has_to_clean'] = True 
+                has_to_clean = shifts['shifts'][0]['name']
+
+            break
+    
+    write_to_json(path=WC_JSON, data=shifts)
+
+    await bot.edit_message_text(f'🚽 *{has_to_clean}* moet deze week de WC kuisen. Veel kuisplezier!',
+                                query.message.chat.id,
+                                query.message.message_id,
+                                reply_markup=get_wc_keyboard(),
+                                parse_mode=ParseMode.MARKDOWN
+    )
 
 # Categories
 @dp.callback_query_handler(item_cd.filter(action=['brouwer_edit_current_order_category']))
