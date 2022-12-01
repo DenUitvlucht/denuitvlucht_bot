@@ -148,20 +148,20 @@ async def cmd_add(message: types.Message):
 
         if len(args) == 1:
 
-            await message.reply(f'Vergeet je puntje niet te vermelden!.')
+            await message.reply(f'⚠️ *Vergeet je puntje niet te vermelden!*', parse_mode=ParseMode.MARKDOWN)
 
         elif len(args) > 1:
 
             puntje = ' '.join(args[1:])
-            await message.reply(f'Puntje: "{puntje}" is toegevoegd!')
+            await message.reply(f'✅ *Puntje: "{puntje}" is toegevoegd!*', parse_mode=ParseMode.MARKDOWN)
 
-        rvb_list = read_from_json(path=RVB_JSON)
-        rvb_list['puntjes'].append({
-            'subject': puntje,
-            'date': str(datetime.datetime.today().strftime("%d/%m/%Y"))
-        })
+            rvb_list = read_from_json(path=RVB_JSON)
+            rvb_list['puntjes'].append({
+                'subject': puntje,
+                'date': str(datetime.datetime.today().strftime("%d/%m/%Y"))
+            })
 
-        write_to_json(path=RVB_JSON, data=rvb_list)
+            write_to_json(path=RVB_JSON, data=rvb_list)
     else:
 
         await message.reply(f'Sorry deze bot kan enkel gebruikt worden in de bestuursgroep, door een toegelaten bestuurslid.')
@@ -220,7 +220,7 @@ async def brouwer_callback(query: types.CallbackQuery, callback_data: typing.Dic
 
                 type = 'bak(ken)' if 'Liter' not in best['name'] else 'vat(en)'
                 overzicht.append(
-                    f'- {best["name"]} | {best["amount"]} {type}\n')
+                    f'*- {best["name"]} | {best["amount"]} {type}*\n')
                 count += 1
 
     text = 'Dag brouwer, dit is je huidige bestelling:\n\n' if count > 0 else 'Dag brouwer, momenteel staat er geen bestelling klaar.'
@@ -229,7 +229,8 @@ async def brouwer_callback(query: types.CallbackQuery, callback_data: typing.Dic
         f'{text}{"".join(overzicht)}\nDruk op onderstaande knop om de bestelling aan te passen of toe te voegen.',
         query.message.chat.id,
         query.message.message_id,
-        reply_markup=get_brouwer_keyboard()
+        reply_markup=get_brouwer_keyboard(),
+        parse_mode=ParseMode.MARKDOWN
     )
 
 # RVB LIST
@@ -244,7 +245,7 @@ async def rvb_list_callback(query: types.CallbackQuery):
     for item in rvb_list['puntjes']:
 
         overzicht.append(
-            f'- {item["subject"]} | Toegevoegd op {item["date"]} \n\n')
+            f'*- {item["subject"]}* | Toegevoegd op {item["date"]} \n\n')
 
     if len(overzicht) > 0:
 
@@ -252,7 +253,8 @@ async def rvb_list_callback(query: types.CallbackQuery):
             f'Dit zijn de RVB-puntjes van deze week:\n\n{"".join(overzicht)}',
             query.message.chat.id,
             query.message.message_id,
-            reply_markup=get_rvb_list_keyboard()
+            reply_markup=get_rvb_list_keyboard(),
+            parse_mode=ParseMode.MARKDOWN
         )
     
     else:
