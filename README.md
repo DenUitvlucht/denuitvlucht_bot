@@ -1,6 +1,9 @@
 # Den Uitvlucht Telegram Bot
 Telegram Bot that can perform various 'bestuurstaken'
-Scope is limited to 'brouwerstaken' and 'extra puntjes' for now.
+
+- Brouwer -> Done
+- WC Shift -> Done
+- RVB puntjes -> Done
 
 ## Motivation
 
@@ -19,6 +22,7 @@ pip install -r requirements.txt
 - Allowed Users (BESTUUR_IDS)
 - Sender (FROM)
 - Receiver (TO)
+- Barbezetting Chat ID (BARBEZETTING_CHAT_ID)
 
 ## Usage
 ### BOT
@@ -37,6 +41,9 @@ python denuitvlucht_bot/notifiers/order_notifier.py
 ```
 ```bash
 python denuitvlucht_bot/notifiers/levering_notifier.py
+```
+```bash
+python denuitvlucht_bot/notifiers/shift_notifier.py
 ```
 
 ## Contributing
