@@ -51,7 +51,7 @@ def get_intro_keyboard():  # Main options for bestuur
         types.InlineKeyboardButton(
             '🍺 Brouwer', callback_data=brouwer_cd.new(action='brouwer_keyboard'))).row(types.InlineKeyboardButton(
                 '📖 RVB-puntjes', callback_data=rvb_cd.new(action='rvb_list'))).row(types.InlineKeyboardButton(
-                '🚽 WC-shift', callback_data=wc_cd.new(action='wc_shift'))
+                    '🚽 WC-shift', callback_data=wc_cd.new(action='wc_shift'))
     )
 
 
@@ -61,6 +61,7 @@ def get_brouwer_keyboard():  # Brouwer keyboard with option(s)
             action='brouwer_edit_current_order_category', name='', amount='', category='')),
     ).row(types.InlineKeyboardButton('⬅️ Terug', callback_data=brouwer_cd.new(action='denuitvlucht')))
 
+
 def get_wc_keyboard():  # Brouwer keyboard with option(s)
     return types.InlineKeyboardMarkup().row(
         types.InlineKeyboardButton('⏩ Volgende shift', callback_data=wc_cd.new(
@@ -68,11 +69,16 @@ def get_wc_keyboard():  # Brouwer keyboard with option(s)
     ).row(types.InlineKeyboardButton('⬅️ Terug', callback_data=wc_cd.new(action='denuitvlucht')))
 
 
-def get_rvb_list_keyboard():  # Brouwer keyboard with option(s)
-    return types.InlineKeyboardMarkup().row(types.InlineKeyboardButton('🗑️ Wis lijst', callback_data=rvb_cd.new(action='wipe_rvb_list'))).row(types.InlineKeyboardButton('⬅️ Terug', callback_data=rvb_cd.new(action='denuitvlucht')))
+def get_rvb_list_keyboard():
+    return types.InlineKeyboardMarkup().row(types.InlineKeyboardButton('🗑️ Wis lijst', callback_data=rvb_cd.new(action='wipe_rvb_list_confirmation'))).row(types.InlineKeyboardButton('⬅️ Terug', callback_data=rvb_cd.new(action='denuitvlucht')))
 
-def get_rvb_list_keyboard_alt():  # Brouwer keyboard with option(s)
+
+def get_rvb_list_keyboard_alt():
     return types.InlineKeyboardMarkup().row(types.InlineKeyboardButton('⬅️ Terug', callback_data=rvb_cd.new(action='denuitvlucht')))
+
+
+def get_wipe_rvb_list_confirmation_keyboard():
+    return types.InlineKeyboardMarkup().row(types.InlineKeyboardButton('✅ JA', callback_data=rvb_cd.new(action='wipe_rvb_list'))).row(types.InlineKeyboardButton('❌ NEE', callback_data=rvb_cd.new(action='rvb_list')))
 
 
 def get_brouwer_category_keyboard(name, amount):  # Category keyboard
@@ -149,6 +155,8 @@ async def cmd_start(message: types.Message):
         await message.reply(f'Sorry deze bot kan enkel gebruikt worden in de bestuursgroep, door een toegelaten bestuurslid.')
 
 # Add handler
+
+
 @dp.message_handler(commands=['add'])
 async def cmd_add(message: types.Message):
 
@@ -175,10 +183,12 @@ async def cmd_add(message: types.Message):
     else:
 
         await message.reply(f'Sorry deze bot kan enkel gebruikt worden in de bestuursgroep, door een toegelaten bestuurslid.')
-    
+
 # Wipe handler
+
+
 @dp.callback_query_handler(rvb_cd.filter(action=['wipe_rvb_list']))
-async def intro_callback(query: types.CallbackQuery, callback_data: typing.Dict[str, str]):
+async def wipe_rvb_list_callback(query: types.CallbackQuery, callback_data: typing.Dict[str, str]):
 
     await query.answer()
 
@@ -195,6 +205,21 @@ async def intro_callback(query: types.CallbackQuery, callback_data: typing.Dict[
         query.message.chat.id,
         query.message.message_id,
         reply_markup=get_rvb_list_keyboard_alt()
+    )
+
+# Wipe handler
+
+
+@dp.callback_query_handler(rvb_cd.filter(action=['wipe_rvb_list_confirmation']))
+async def intro_callback(query: types.CallbackQuery, callback_data: typing.Dict[str, str]):
+
+    await query.answer()
+
+    await bot.edit_message_text(
+        'Ben je zeker dat je de RVB-puntjes wil wissen?',
+        query.message.chat.id,
+        query.message.message_id,
+        reply_markup=get_wipe_rvb_list_confirmation_keyboard()
     )
 
 
@@ -221,7 +246,7 @@ async def brouwer_callback(query: types.CallbackQuery, callback_data: typing.Dic
     aanbod = read_from_json(path=AANBOD_JSON)
 
     overzicht = []
-    count = 0
+    bakken_count = 0
     for category in aanbod:
 
         for best in aanbod[category]:
@@ -231,9 +256,10 @@ async def brouwer_callback(query: types.CallbackQuery, callback_data: typing.Dic
                 type = 'bak(ken)' if 'Liter' not in best['name'] else 'vat(en)'
                 overzicht.append(
                     f'*- {best["name"]} | {best["amount"]} {type}*\n')
-                count += 1
+                bakken_count += int(best['amount'])
 
-    text = 'Dag brouwer, dit is je huidige bestelling:\n\n' if count > 0 else 'Dag brouwer, momenteel staat er geen bestelling klaar.'
+    text = 'Dag brouwer,\n\n ⚠️ Momenteel staat er geen bestelling klaar. ⚠️\n\n' if bakken_count == 0 else 'Dag brouwer,\n\n⚠️ Het aantal bakken van je bestelling ligt nog onder de 15! ⚠️\n\n' if bakken_count < 15 else 'Dag brouwer,\n\ndit is je huidige bestelling:\n\n'
+    #text = 'Dag brouwer, dit is je huidige bestelling:\n\n' if bakken_count > 0 else 'Dag brouwer, momenteel staat er geen bestelling klaar.'
 
     await bot.edit_message_text(
         f'{text}{"".join(overzicht)}\nDruk op onderstaande knop om de bestelling aan te passen of toe te voegen.',
@@ -244,6 +270,8 @@ async def brouwer_callback(query: types.CallbackQuery, callback_data: typing.Dic
     )
 
 # RVB LIST
+
+
 @dp.callback_query_handler(rvb_cd.filter(action=['rvb_list']))
 async def rvb_list_callback(query: types.CallbackQuery):
 
@@ -266,7 +294,7 @@ async def rvb_list_callback(query: types.CallbackQuery):
             reply_markup=get_rvb_list_keyboard(),
             parse_mode=ParseMode.MARKDOWN
         )
-    
+
     else:
 
         await bot.edit_message_text(
@@ -277,6 +305,8 @@ async def rvb_list_callback(query: types.CallbackQuery):
         )
 
 # WC SHIFT
+
+
 @dp.callback_query_handler(wc_cd.filter(action=['wc_shift']))
 async def wc_shift_callback(query: types.CallbackQuery):
 
@@ -292,35 +322,37 @@ async def wc_shift_callback(query: types.CallbackQuery):
             has_to_clean = shift['name']
 
     await bot.edit_message_text(
-            f'🚽 *{has_to_clean}* moet deze week de WC kuisen. Veel kuisplezier!',
-            query.message.chat.id,
-            query.message.message_id,
-            reply_markup=get_wc_keyboard(),
-            parse_mode=ParseMode.MARKDOWN
-        )
+        f'🚽 *{has_to_clean}* moet deze week de WC kuisen. Veel kuisplezier!',
+        query.message.chat.id,
+        query.message.message_id,
+        reply_markup=get_wc_keyboard(),
+        parse_mode=ParseMode.MARKDOWN
+    )
 
 # WC SHIFT NEXT
+
+
 @dp.callback_query_handler(wc_cd.filter(action='next_wc_shift'))
 async def next_wc_shift_handler(query: types.CallbackQuery, callback_data: dict):
 
     shifts = read_from_json(path=WC_JSON)
-    
+
     for index, shift in enumerate(shifts['shifts']):
 
         if shift['has_to_clean'] == True:
 
             shift['has_to_clean'] = False
 
-            if shifts['shifts'].index(shift) < len(shifts['shifts']) -1:
+            if shifts['shifts'].index(shift) < len(shifts['shifts']) - 1:
 
-                shifts['shifts'][index+1]['has_to_clean'] = True 
+                shifts['shifts'][index+1]['has_to_clean'] = True
                 has_to_clean = shifts['shifts'][index+1]['name']
             else:
-                shifts['shifts'][0]['has_to_clean'] = True 
+                shifts['shifts'][0]['has_to_clean'] = True
                 has_to_clean = shifts['shifts'][0]['name']
 
             break
-    
+
     write_to_json(path=WC_JSON, data=shifts)
 
     await bot.edit_message_text(f'🚽 *{has_to_clean}* moet deze week de WC kuisen. Veel kuisplezier!',
@@ -328,9 +360,11 @@ async def next_wc_shift_handler(query: types.CallbackQuery, callback_data: dict)
                                 query.message.message_id,
                                 reply_markup=get_wc_keyboard(),
                                 parse_mode=ParseMode.MARKDOWN
-    )
+                                )
 
 # Categories
+
+
 @dp.callback_query_handler(item_cd.filter(action=['brouwer_edit_current_order_category']))
 async def brouwer_edit_bestelling_callback(query: types.CallbackQuery, callback_data: typing.Dict[str, str]):
 
