@@ -45,22 +45,21 @@ sheet = workbook.active
 
 # FILL EXCEL FILE WITH AMOUNTS AND SAVE
 
-valid = False
+bakken_count = 0
 for category in bestelling_json:
 
     for item in bestelling_json[category]:
         
         if item['amount'] != '0':
-            print(item['name'])
-            valid = True
-        
-        if valid:
+            
+            bakken_count += int(item['amount'])
 
             sheet[item['excel_location']
-                ] = item['amount'] if item['amount'] != '0' else ''
-        else:
+                ] = item['amount']
 
-            exit(1)
+if bakken_count < 15:
+
+    exit(1)
 
 workbook.save(filename=BESTELLING_EXCEL_OUTPUT)
 
