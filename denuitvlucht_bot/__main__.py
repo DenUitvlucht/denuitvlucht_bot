@@ -304,6 +304,36 @@ async def rvb_list_callback(query: types.CallbackQuery):
             reply_markup=get_rvb_list_keyboard_alt()
         )
 
+@dp.message_handler(commands=['list'])
+async def rvb_list_command(message: types.Message):
+
+    if str(message.from_id) in BESTUUR_IDS and str(message.chat.id) in CHAT_ID:
+
+        rvb_list = read_from_json(path=RVB_JSON)
+
+        overzicht = []
+        for item in rvb_list['puntjes']:
+
+            overzicht.append(
+                f'*- {item["subject"]}* | Toegevoegd op {item["date"]} \n\n')
+        
+        if len(overzicht) > 0:
+
+            await message.reply(
+                f'Dit zijn de RVB-puntjes van deze week:\n\n{"".join(overzicht)}',
+                parse_mode=ParseMode.MARKDOWN
+            )
+
+        else:
+
+            await message.reply(
+                f'Er zijn nog geen RVB-puntjes toegevoegd.',
+            )
+
+    else:
+
+        await message.reply(f'Sorry deze bot kan enkel gebruikt worden in de bestuursgroep, door een toegelaten bestuurslid.')
+
 # WC SHIFT
 
 

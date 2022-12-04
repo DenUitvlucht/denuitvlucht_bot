@@ -83,6 +83,8 @@ python denuitvlucht_bot/
 
 - **/add something**: adds an additional point to the list.
 
+- **/list**: retrieve list with additional points.
+
 ## Contributing
 Pull requests are welcome. For major changes, please open an issue first to discuss what you would like to change.
 
