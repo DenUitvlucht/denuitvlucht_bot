@@ -160,6 +160,8 @@ async def cmd_start(message: types.Message):
 @dp.message_handler(commands=['add'])
 async def cmd_add(message: types.Message):
 
+    print(message.from_user)
+    
     if str(message.from_id) in BESTUUR_IDS and str(message.chat.id) in CHAT_ID:
 
         args = message.text.split(' ')
@@ -176,7 +178,8 @@ async def cmd_add(message: types.Message):
             rvb_list = read_from_json(path=RVB_JSON)
             rvb_list['puntjes'].append({
                 'subject': puntje,
-                'date': str(datetime.datetime.today().strftime("%d/%m/%Y"))
+                'date': str(datetime.datetime.today().strftime("%d/%m/%Y")),
+                'who': f'{message.from_user.first_name}'
             })
 
             write_to_json(path=RVB_JSON, data=rvb_list)
@@ -282,8 +285,9 @@ async def rvb_list_callback(query: types.CallbackQuery):
     overzicht = []
     for item in rvb_list['puntjes']:
 
+        who = item['who'] if 'who' in item else 'onbekend'
         overzicht.append(
-            f'*- {item["subject"]}* | Toegevoegd op {item["date"]} \n\n')
+            f'*- {item["subject"]}* | Toegevoegd op *{item["date"]}* door *{who}* \n\n')
 
     if len(overzicht) > 0:
 
@@ -314,8 +318,9 @@ async def rvb_list_command(message: types.Message):
         overzicht = []
         for item in rvb_list['puntjes']:
 
+            who = item['who'] if 'who' in item else 'onbekend'
             overzicht.append(
-                f'*- {item["subject"]}* | Toegevoegd op {item["date"]} \n\n')
+                f'*- {item["subject"]}* | Toegevoegd op *{item["date"]}* door *{who}* \n\n')
         
         if len(overzicht) > 0:
 
