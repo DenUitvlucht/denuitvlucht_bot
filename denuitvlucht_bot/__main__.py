@@ -41,6 +41,7 @@ dp = Dispatcher(bot)
 brouwer_cd = CallbackData('vote', 'action')
 item_cd = CallbackData('vote', 'action', 'name', 'amount', 'category')
 rvb_cd = CallbackData('vote', 'action')
+rvb_del_cd = CallbackData('vote', 'action', 'position')
 wc_cd = CallbackData('vote', 'action')
 
 # Keyboards
@@ -62,22 +63,22 @@ def get_brouwer_keyboard():  # Brouwer keyboard with option(s)
     ).row(types.InlineKeyboardButton('⬅️ Terug', callback_data=brouwer_cd.new(action='denuitvlucht')))
 
 
-def get_wc_keyboard():  # Brouwer keyboard with option(s)
+def get_wc_keyboard():  # WC keyboard with option(s)
     return types.InlineKeyboardMarkup().row(
         types.InlineKeyboardButton('⏩ Volgende shift', callback_data=wc_cd.new(
             action='next_wc_shift')),
     ).row(types.InlineKeyboardButton('⬅️ Terug', callback_data=wc_cd.new(action='denuitvlucht')))
 
 
-def get_rvb_list_keyboard():
-    return types.InlineKeyboardMarkup().row(types.InlineKeyboardButton('🗑️ Wis lijst', callback_data=rvb_cd.new(action='wipe_rvb_list_confirmation'))).row(types.InlineKeyboardButton('⬅️ Terug', callback_data=rvb_cd.new(action='denuitvlucht')))
+def get_rvb_list_keyboard(): # RVB List keyboard with option(s)
+    return types.InlineKeyboardMarkup().row(types.InlineKeyboardButton('🖊️ Individuele items verwijderen', callback_data=rvb_cd.new(action='rvb_list_edit'))).row(types.InlineKeyboardButton('🗑️ Volledige lijst wissen', callback_data=rvb_cd.new(action='wipe_rvb_list_confirmation'))).row(types.InlineKeyboardButton('⬅️ Terug', callback_data=rvb_cd.new(action='denuitvlucht')))
 
 
-def get_rvb_list_keyboard_alt():
+def get_rvb_list_keyboard_alt():# Alt RVB List keyboard with option(s)
     return types.InlineKeyboardMarkup().row(types.InlineKeyboardButton('⬅️ Terug', callback_data=rvb_cd.new(action='denuitvlucht')))
 
 
-def get_wipe_rvb_list_confirmation_keyboard():
+def get_wipe_rvb_list_confirmation_keyboard(): # RVB List confirmation keyboard
     return types.InlineKeyboardMarkup().row(types.InlineKeyboardButton('✅ JA', callback_data=rvb_cd.new(action='wipe_rvb_list'))).row(types.InlineKeyboardButton('❌ NEE', callback_data=rvb_cd.new(action='rvb_list')))
 
 
@@ -159,8 +160,6 @@ async def cmd_start(message: types.Message):
 
 @dp.message_handler(commands=['add'])
 async def cmd_add(message: types.Message):
-
-    print(message.from_user)
     
     if str(message.from_id) in BESTUUR_IDS and str(message.chat.id) in CHAT_ID:
 
@@ -274,7 +273,6 @@ async def brouwer_callback(query: types.CallbackQuery, callback_data: typing.Dic
 
 # RVB LIST
 
-
 @dp.callback_query_handler(rvb_cd.filter(action=['rvb_list']))
 async def rvb_list_callback(query: types.CallbackQuery):
 
@@ -308,6 +306,74 @@ async def rvb_list_callback(query: types.CallbackQuery):
             reply_markup=get_rvb_list_keyboard_alt()
         )
 
+@dp.callback_query_handler(rvb_cd.filter(action=['rvb_list_edit']))
+async def rvb_list_edit_callback(query: types.CallbackQuery):
+
+    await query.answer()
+
+    rvb_list = read_from_json(path=RVB_JSON)
+
+    keyboard = InlineKeyboardMarkup()
+    count = 0
+    for item in rvb_list['puntjes']:
+
+        index = rvb_list['puntjes'].index(item)
+
+        keyboard.row(types.InlineKeyboardButton(
+            text=f"{item['subject']}", callback_data=rvb_del_cd.new(action=f'rvb_delete_item', position=index)))
+        count += 1
+
+    if count > 0:
+
+        keyboard.row(types.InlineKeyboardButton('⬅️ Terug', callback_data=rvb_cd.new(action='rvb_list')))
+
+        await bot.edit_message_text(
+            f'Klik op een punje om het uit de lijst te verwijderen.\n\n',
+            query.message.chat.id,
+            query.message.message_id,
+            reply_markup=keyboard,
+            parse_mode=ParseMode.MARKDOWN
+        )
+
+    else:
+
+        keyboard = InlineKeyboardMarkup()
+        keyboard.row(types.InlineKeyboardButton('⬅️ Terug', callback_data=rvb_cd.new(action='rvb_list')))
+
+        await bot.edit_message_text(
+            f'Er zijn geen RVB-puntjes meer op te verwijderen.',
+            query.message.chat.id,
+            query.message.message_id,
+            reply_markup=keyboard
+        )
+
+@dp.callback_query_handler(rvb_del_cd.filter(action=['rvb_delete_item']))
+async def rvb_list_callback(query: types.CallbackQuery):
+
+    await query.answer()
+
+    item_position = int(query.data.split('rvb_delete_item:')[1])
+    
+    rvb_list = read_from_json(path=RVB_JSON)
+
+    item_subject =  rvb_list['puntjes'][item_position]['subject']
+
+    rvb_list['puntjes'].pop(item_position)
+    
+    write_to_json(path=RVB_JSON, data=rvb_list)
+
+    keyboard = InlineKeyboardMarkup()
+    keyboard.row(types.InlineKeyboardButton('⬅️ Terug', callback_data=rvb_cd.new(action='rvb_list_edit')))
+
+    await bot.edit_message_text(
+            f'Puntje *{item_subject}* is verwijderd!',
+            query.message.chat.id,
+            query.message.message_id,
+            reply_markup=keyboard,
+            parse_mode=ParseMode.MARKDOWN
+        )
+
+
 @dp.message_handler(commands=['list'])
 async def rvb_list_command(message: types.Message):
 
@@ -324,9 +390,12 @@ async def rvb_list_command(message: types.Message):
         
         if len(overzicht) > 0:
 
+            keyboard = InlineKeyboardMarkup().row(types.InlineKeyboardButton('🖊️ Individuele items verwijderen', callback_data=rvb_cd.new(action='rvb_list_edit'))).row(types.InlineKeyboardButton('🗑️ Volledige lijst wissen', callback_data=rvb_cd.new(action='wipe_rvb_list_confirmation')))
+
             await message.reply(
                 f'Dit zijn de RVB-puntjes van deze week:\n\n{"".join(overzicht)}',
-                parse_mode=ParseMode.MARKDOWN
+                parse_mode=ParseMode.MARKDOWN,
+                reply_markup=keyboard
             )
 
         else:
