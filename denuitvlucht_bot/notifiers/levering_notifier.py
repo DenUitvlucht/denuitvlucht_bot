@@ -3,17 +3,18 @@
 
 # CRONTAB FOR THIS FILE: 0 18 * * 2
 
+
 import os
 import asyncio
 import datetime
 
-from simplegmail import Gmail
-from simplegmail.query import construct_query
 from aiogram import Bot, Dispatcher
 from aiogram.types.input_file import InputFile
 from aiogram.types import ParseMode
 
 from dotenv import load_dotenv
+
+from gmail_helper import check_credentials, get_attachment_data, get_message_attachment
 
 load_dotenv()
 
@@ -23,33 +24,35 @@ ORDER_OUTPUT = os.path.join(
     os.getcwd(), 'denuitvlucht_bot', 'output', 'order.pdf')
 
 today = datetime.datetime.today().strftime('_%d_%m_%y')
-
-gmail = Gmail()
-
-query_params = {
-    "newer_than": (1, "day"),
-}
-
-messages = gmail.get_messages(query=construct_query(query_params))
+yesterday = (datetime.datetime.today() -
+             datetime.timedelta(days=1)).strftime('%y/%m/%d')
 
 
-async def notify_bestuur(info):
+async def notify_bestuur(data):
 
-    info.attachments[0].save(filepath=ORDER_OUTPUT)
+    with open(ORDER_OUTPUT, 'wb') as f:
+        f.write(data)
+        f.close()
 
     order = InputFile(ORDER_OUTPUT, filename=f"delivery{today}.pdf")
 
-    await bot.send_document(chat_id=CHAT_ID, document=order, caption=f"❗ *LEVERING van {info.sender.split('<')[0]}* ❗\n\nDag bestuursleden, de Bockor-Boys zijn vandaag langsgeweest!\n\nHierboven kan je de details van de levering vinden.\n\nJullie krijgen dit bericht elke dinsdagavond.", parse_mode=ParseMode.MARKDOWN)
+    await bot.send_document(chat_id=CHAT_ID, document=order, caption=f"❗ *LEVERING van OMER* ❗\n\nDag bestuursleden, de Bockor-Boys zijn vandaag langsgeweest!\n\nHierboven kan je de details van de levering vinden.\n\nJullie krijgen dit bericht elke dinsdag.", parse_mode=ParseMode.MARKDOWN)
 
     os.remove(ORDER_OUTPUT)
 
-if messages != []:
+check_credentials()
 
-    for message in messages:
+delivery_attachment = get_message_attachment(location=['INBOX'], queries=[
+    'subject:Order Delivery ', 'from:camion', f'after:{yesterday}'])
 
-        if 'Order Delivery' in message.subject:
+if delivery_attachment['attachment_id'] is not None:
 
-            bot = Bot(token=API_TOKEN)
-            dp = Dispatcher(bot)
+    data = get_attachment_data(
+        message_id=delivery_attachment['message_id'], attachment_id=delivery_attachment['attachment_id'])
 
-            asyncio.run(notify_bestuur(info=message))
+    if data is not None:
+
+        bot = Bot(token=API_TOKEN)
+        dp = Dispatcher(bot)
+
+        asyncio.run(notify_bestuur(data=data))

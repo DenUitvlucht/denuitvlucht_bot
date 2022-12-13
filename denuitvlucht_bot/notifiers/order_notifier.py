@@ -7,13 +7,13 @@ import os
 import asyncio
 import datetime
 
-from simplegmail import Gmail
-from simplegmail.query import construct_query
 from aiogram import Bot, Dispatcher
 from aiogram.types.input_file import InputFile
 from aiogram.types import ParseMode
 
 from dotenv import load_dotenv
+
+from gmail_helper import check_credentials, get_attachment_data, get_message_attachment
 
 load_dotenv()
 
@@ -24,33 +24,36 @@ ORDER_OUTPUT = os.path.join(
 
 next_tuesday = datetime.datetime.today() + datetime.timedelta(days=5)
 next_tuesday_formatted = next_tuesday.strftime('_%d_%m_%y')
-
-gmail = Gmail()
-
-query_params = {
-    "newer_than": (1, "day"),
-}
-
-messages = gmail.get_sent_messages(query=construct_query(query_params))
+yesterday = (datetime.datetime.today() -
+             datetime.timedelta(days=1)).strftime('%y/%m/%d')
 
 
-async def notify_bestuur(info):
+async def notify_bestuur(data):
 
-    info.attachments[0].save(filepath=ORDER_OUTPUT)
+    with open(ORDER_OUTPUT, 'wb') as f:
+        f.write(data)
+        f.close()
 
-    order = InputFile(ORDER_OUTPUT, filename=f"order{next_tuesday_formatted}.xlsx")
+    order = InputFile(
+        ORDER_OUTPUT, filename=f"order{next_tuesday_formatted}.xlsx")
 
-    await bot.send_document(chat_id=CHAT_ID, document=order, caption=f"❗ *BESTELLING GEPLAATST* ❗\n\nDag bestuursleden, ik heb daarnet jullie bestelling geplaatst.\n\nHierboven vindt je het Excel bestand dat ik naar de brouwer heb gestuurd.\n\nJullie krijgen dit bericht elke donderdagavond.", parse_mode=ParseMode.MARKDOWN)
+    await bot.send_document(chat_id=CHAT_ID, document=order, caption=f"❗ *BESTELLING GEPLAATST* ❗\n\nDag bestuursleden, ik heb daarnet jullie bestelling geplaatst.\n\nHierboven vindt je het Excel bestand dat ik naar de brouwer heb gestuurd.\n\nJullie krijgen dit bericht elke donderdag.", parse_mode=ParseMode.MARKDOWN)
 
     os.remove(ORDER_OUTPUT)
 
-if messages != []:
+check_credentials()
 
-    for message in messages:
+order_attachment = get_message_attachment(location=['SENT'], queries=[
+    'subject:Bestelling JH Den Uitvlucht', 'to:bestelling@omer.be', f'after:{yesterday}'])
 
-        if 'Bestelling JH Den Uitvlucht' in message.subject:
+if order_attachment['attachment_id'] is not None:
 
-            bot = Bot(token=API_TOKEN)
-            dp = Dispatcher(bot)
+    data = get_attachment_data(
+        message_id=order_attachment['message_id'], attachment_id=order_attachment['attachment_id'])
 
-            asyncio.run(notify_bestuur(info=message))
+    if data is not None:
+
+        bot = Bot(token=API_TOKEN)
+        dp = Dispatcher(bot)
+
+        asyncio.run(notify_bestuur(data=data))

@@ -143,8 +143,8 @@ dmypy.json
 cython_debug/
 
 # GMAIL STUFF
-client_secret.json
-gmail_token.json
+credentials.json
+token.json
 
 # OTHER JSON STUFF
 rvb_puntjes.json
