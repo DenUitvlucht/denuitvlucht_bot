@@ -12,6 +12,8 @@ from simplegmail import Gmail
 
 from dotenv import load_dotenv
 
+from gmail_helper import check_credentials, gmail_send_message_with_attachment
+
 load_dotenv()
 
 TO = os.getenv('TO')
@@ -19,7 +21,8 @@ FROM = os.getenv('FROM')
 
 # FILE LOCATIONS
 
-BESTELLING_JSON_LOCATION = os.path.join(os.getcwd(), 'denuitvlucht_bot', 'data', 'aanbod.json')
+BESTELLING_JSON_LOCATION = os.path.join(
+    os.getcwd(), 'denuitvlucht_bot', 'data', 'aanbod.json')
 BESTELLING_EXCEL_LOCATION = os.path.join(
     os.getcwd(), 'denuitvlucht_bot', 'data', 'den_uitvlucht.xlsx')
 
@@ -49,13 +52,13 @@ bakken_count = 0
 for category in bestelling_json:
 
     for item in bestelling_json[category]:
-        
+
         if item['amount'] != '0':
-            
+
             bakken_count += int(item['amount'])
 
             sheet[item['excel_location']
-                ] = item['amount']
+                  ] = item['amount']
 
 if bakken_count < 15:
 
@@ -65,25 +68,18 @@ workbook.save(filename=BESTELLING_EXCEL_OUTPUT)
 
 # INITIALIZE GMAIL
 
-gmail = Gmail()
-
-# DEFINE PARAMS
-
-params = {
-  "to": TO,
-  "sender": FROM,
-  "cc": [],
-  "bcc": [],
-  "subject": "Bestelling JH Den Uitvlucht",
-  "msg_html": "Beste<br /><br />In bijlage vindt u de bestelling voor volgende week.<br /><br />Met vriendelijke groeten<br /><br />Team Den Uitvlucht",
-  "msg_plain": "Nieuwe bestelling JH Den Uitvlucht",
-  "attachments": [BESTELLING_EXCEL_OUTPUT],
-  "signature": True
-}
+check_credentials()
 
 # SEND E-MAIL
 
-message = gmail.send_message(**params)
+gmail_send_message_with_attachment(
+    attachment=BESTELLING_EXCEL_OUTPUT,
+    attachment_name=f'den_uitvlucht{next_tuesday_formatted}.xlsx',
+    message='Beste\n\nIn bijlage vindt u de bestelling voor volgende week.\n\nMet vriendelijke groeten\n\nTeam Den Uitvlucht',
+    receiver=TO,
+    sender=FROM,
+    subject='Bestelling JH Den Uitvlucht',
+)
 
 # CLEAR JSON
 
@@ -101,4 +97,3 @@ write_to_json(
 # DELETE EXCEL
 
 os.remove(BESTELLING_EXCEL_OUTPUT)
-
