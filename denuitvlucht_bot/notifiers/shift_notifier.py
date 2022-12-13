@@ -18,6 +18,7 @@ CHAT_ID = os.getenv('BARBEZETTING')
 
 week = f"{datetime.datetime.today().strftime('%d/%m')} - { (datetime.datetime.today() + datetime.timedelta(days=6)).strftime('%d/%m')}"
 
+
 async def send_bar_poll(chat_id):
 
     await bot.send_poll(chat_id=chat_id, is_anonymous=False, allows_multiple_answers=True, question=f"🍻 Barbezeting Week {week}", options=["Woensdag", "Vrijdag", "Zaterdag"])

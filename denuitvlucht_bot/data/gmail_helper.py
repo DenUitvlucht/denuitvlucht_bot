@@ -3,14 +3,8 @@ from __future__ import print_function
 import base64
 import mimetypes
 import os
-import google.auth
 
 from email.message import EmailMessage
-from email.mime.audio import MIMEAudio
-from email.mime.base import MIMEBase
-from email.mime.image import MIMEImage
-from email.mime.text import MIMEText
-
 
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
@@ -91,11 +85,9 @@ def gmail_send_message_with_attachment(attachment: str, attachment_name: str, re
 
         send_message = (service.users().messages().send
                         (userId="me", body=create_message).execute())
-    
+
     except HttpError as error:
 
         send_message = None
-        
+
     return send_message
-
-

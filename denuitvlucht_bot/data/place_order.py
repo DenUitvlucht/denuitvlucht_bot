@@ -8,8 +8,6 @@ from openpyxl import load_workbook
 
 from json_helper import read_from_json, write_to_json
 
-from simplegmail import Gmail
-
 from dotenv import load_dotenv
 
 from gmail_helper import check_credentials, gmail_send_message_with_attachment

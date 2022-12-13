@@ -34,8 +34,9 @@ def check_credentials():
         # Save the credentials for the next run
         with open('token.json', 'w') as token:
             token.write(creds.to_json())
-    
+
     return True
+
 
 def get_message_attachment(location: list, queries: list):
 
@@ -47,7 +48,7 @@ def get_message_attachment(location: list, queries: list):
         userId='me', labelIds=location, q=queries).execute()
 
     messages = results.get('messages', [])
-    
+
     if messages != []:
 
         for message in messages:
@@ -61,7 +62,7 @@ def get_message_attachment(location: list, queries: list):
 
                     attachment_id = part['body']['attachmentId']
                     message_id = message['id']
-            
+
     else:
 
         message_id, attachment_id = None, None
@@ -71,18 +72,16 @@ def get_message_attachment(location: list, queries: list):
         'attachment_id': attachment_id
     }
 
+
 def get_attachment_data(message_id: str, attachment_id: str):
 
     creds = Credentials.from_authorized_user_file('token.json', SCOPES)
 
     service = build('gmail', 'v1', credentials=creds)
 
-    response = service.users().messages().attachments().get(userId='me', messageId=message_id, id=attachment_id).execute()
+    response = service.users().messages().attachments().get(
+        userId='me', messageId=message_id, id=attachment_id).execute()
 
     data = response['data']
-    
+
     return base64.urlsafe_b64decode(data)
-
-
-    
-
