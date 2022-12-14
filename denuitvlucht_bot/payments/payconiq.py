@@ -66,20 +66,21 @@ def get_payment_profile_ids(SESSION: requests.Session):
 
 def get_totals_from_payment_profile_id(SESSION: requests.Session, payment_profile_id: str):
 
-    now = datetime.datetime.now().strftime('%Y-%m-%dT%H:%M:%SZ')
+    now = datetime.datetime.now().strftime('%Y-%m-%dT00:00:01Z')
 
+    yesterday = (datetime.datetime.today() -
+             datetime.timedelta(days=1)).strftime('%Y-%m-%dT00:00:01Z')
+             
     today = datetime.datetime.today()
 
-    day = today.strftime('%Y-%m-%dT00:00:00Z')
-
     start_of_week = (today - datetime.timedelta(
-        days=today.weekday())).strftime('%Y-%m-%dT00:00:00Z')
+        days=today.weekday())).strftime('%Y-%m-%dT00:00:01Z')
 
     start_of_month = (today - datetime.timedelta(
-        days=today.day-1)).strftime('%Y-%m-%dT00:00:00Z')
+        days=today.day-1)).strftime('%Y-%m-%dT00:00:01Z')
 
     start_of_year = datetime.datetime(
-        today.year, 1, 1).strftime('%Y-%m-%dT00:00:00Z')
+        today.year, 1, 1).strftime('%Y-%m-%dT00:00:01Z')
 
     r = SESSION.post(
         url=PAYCONIQ_TOTALS_URL,
@@ -90,7 +91,7 @@ def get_totals_from_payment_profile_id(SESSION: requests.Session, payment_profil
                         "intervalType": "DAY",
                         "timeInterval":
                         {
-                            "from": day,
+                            "from": yesterday,
                             "to": now
                         }
                     },
