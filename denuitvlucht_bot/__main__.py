@@ -12,7 +12,9 @@ from aiogram import Bot, Dispatcher, executor, types
 from aiogram.utils.callback_data import CallbackData
 from aiogram.types import InlineKeyboardMarkup, ParseMode
 from aiogram.utils.exceptions import MessageNotModified
+from aiogram.types.input_file import InputFile
 
+from payments.payconiq import auth, get_payment_profile_ids, get_totals_from_payment_profile_id
 
 from data.json_helper import read_from_json, write_to_json
 
@@ -30,6 +32,8 @@ API_TOKEN = os.getenv('API_TOKEN')
 BESTUUR_IDS = os.getenv('BESTUUR_IDS').split(',')
 CHAT_ID = os.getenv('CHAT_ID').split(',')
 
+PAYCONIQ_QR = os.path.join(os.getcwd(), 'denuitvlucht_bot', 'data', 'qr.jpg',)
+
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 
@@ -43,6 +47,7 @@ item_cd = CallbackData('vote', 'action', 'name', 'amount', 'category')
 rvb_cd = CallbackData('vote', 'action')
 rvb_del_cd = CallbackData('vote', 'action', 'position')
 wc_cd = CallbackData('vote', 'action')
+financial_cd = CallbackData('vote', 'action')
 
 # Keyboards
 
@@ -51,8 +56,9 @@ def get_intro_keyboard():  # Main options for bestuur
     return types.InlineKeyboardMarkup().row(
         types.InlineKeyboardButton(
             '🍺 Brouwer', callback_data=brouwer_cd.new(action='brouwer_keyboard'))).row(types.InlineKeyboardButton(
-                '📖 RVB-puntjes', callback_data=rvb_cd.new(action='rvb_list'))).row(types.InlineKeyboardButton(
-                    '🚽 WC-shift', callback_data=wc_cd.new(action='wc_shift'))
+                '💵 Financieel', callback_data=financial_cd.new(action='financial_keyboard'))).row(types.InlineKeyboardButton(
+                    '📖 RVB-puntjes', callback_data=rvb_cd.new(action='rvb_list'))).row(types.InlineKeyboardButton(
+                        '🚽 WC-shift', callback_data=wc_cd.new(action='wc_shift'))
     )
 
 
@@ -70,15 +76,15 @@ def get_wc_keyboard():  # WC keyboard with option(s)
     ).row(types.InlineKeyboardButton('⬅️ Terug', callback_data=wc_cd.new(action='denuitvlucht')))
 
 
-def get_rvb_list_keyboard(): # RVB List keyboard with option(s)
+def get_rvb_list_keyboard():  # RVB List keyboard with option(s)
     return types.InlineKeyboardMarkup().row(types.InlineKeyboardButton('🖊️ Individuele items verwijderen', callback_data=rvb_cd.new(action='rvb_list_edit'))).row(types.InlineKeyboardButton('🗑️ Volledige lijst wissen', callback_data=rvb_cd.new(action='wipe_rvb_list_confirmation'))).row(types.InlineKeyboardButton('⬅️ Terug', callback_data=rvb_cd.new(action='denuitvlucht')))
 
 
-def get_rvb_list_keyboard_alt():# Alt RVB List keyboard with option(s)
+def get_rvb_list_keyboard_alt():  # Alt RVB List keyboard with option(s)
     return types.InlineKeyboardMarkup().row(types.InlineKeyboardButton('⬅️ Terug', callback_data=rvb_cd.new(action='denuitvlucht')))
 
 
-def get_wipe_rvb_list_confirmation_keyboard(): # RVB List confirmation keyboard
+def get_wipe_rvb_list_confirmation_keyboard():  # RVB List confirmation keyboard
     return types.InlineKeyboardMarkup().row(types.InlineKeyboardButton('✅ JA', callback_data=rvb_cd.new(action='wipe_rvb_list'))).row(types.InlineKeyboardButton('❌ NEE', callback_data=rvb_cd.new(action='rvb_list')))
 
 
@@ -143,7 +149,16 @@ def get_edit_keyboard(amount, name, category):  # Keyboard to change amounts
         action=f'edit_category', name=name, amount=amount, category=category)))
 
 
+def get_financial_keyboard():  # Financial keyboard with option(s)
+    return types.InlineKeyboardMarkup().row(types.InlineKeyboardButton('Payconiq-overzicht', callback_data=financial_cd.new(action='payconiq'))).row(types.InlineKeyboardButton('Payconiq QR', callback_data=financial_cd.new(action='payconiq_qr'))).row(types.InlineKeyboardButton('⬅️ Terug', callback_data=rvb_cd.new(action='denuitvlucht')))
+
+
+def get_payconiq_keyboard():  # Payconiq keyboard
+    return types.InlineKeyboardMarkup().row(types.InlineKeyboardButton('⬅️ Terug', callback_data=rvb_cd.new(action='financial_keyboard')))
+
 # Handlers
+
+
 @dp.message_handler(commands=['denuitvlucht'])  # Start handler
 async def cmd_start(message: types.Message):
 
@@ -158,9 +173,71 @@ async def cmd_start(message: types.Message):
 # Add handler
 
 
+@dp.callback_query_handler(rvb_cd.filter(action=['financial_keyboard']))
+async def financial_callback(query: types.CallbackQuery, callback_data: typing.Dict[str, str]):
+
+    await query.answer()
+
+    await bot.edit_message_text(
+        'Dag bestuurslid, dit zijn jouw opties:',
+        query.message.chat.id,
+        query.message.message_id,
+        reply_markup=get_financial_keyboard()
+    )
+
+
+@dp.callback_query_handler(rvb_cd.filter(action=['payconiq_qr']))
+async def financial_callback(query: types.CallbackQuery, callback_data: typing.Dict[str, str]):
+
+    await query.answer()
+
+    qr = InputFile(path_or_bytesio=PAYCONIQ_QR)
+
+    await bot.send_photo(
+        photo=qr,
+        chat_id=query.message.chat.id
+    )
+
+
+@dp.callback_query_handler(rvb_cd.filter(action=['payconiq']))
+async def payconiq_callback(query: types.CallbackQuery, callback_data: typing.Dict[str, str]):
+
+    await query.answer()
+
+    data = auth()
+
+    ids = get_payment_profile_ids(
+        data['session'],
+    )
+
+    sticker_totals = get_totals_from_payment_profile_id(
+        ids['session'],
+        payment_profile_id=ids['payment_profile_id_sticker']
+    )
+
+    sticker_totals_text = '\n\n'.join(
+        [f"{item['intervalType']}: *€{str(float(item['totals']['totalAmount']) / 100).replace('.', ',')}*\n-> {item['totals']['transactionCount']} transactie(s)" for item in sticker_totals])
+
+    app_to_app_totals = get_totals_from_payment_profile_id(
+        SESSION=ids['session'],
+        payment_profile_id=ids['payment_profile_id_app_to_app']
+    )
+
+    app_to_app_totals_text = '\n\n'.join(
+        [f"{item['intervalType']}: *€{str(float(item['totals']['totalAmount']) / 100).replace('.', ',')}*\n-> {item['totals']['transactionCount']} transactie(s)" for item in app_to_app_totals])
+
+    await bot.edit_message_text(
+        f'Dit is jullie Payconiq-overzicht:\n\nSticker:\n\n{sticker_totals_text}\n\nOnline:\n\n{app_to_app_totals_text}',
+        query.message.chat.id,
+        query.message.message_id,
+        parse_mode=ParseMode.MARKDOWN,
+        reply_markup=get_payconiq_keyboard()
+    )
+
+
 @dp.message_handler(commands=['add'])
 async def cmd_add(message: types.Message):
-    
+
     if str(message.from_id) in BESTUUR_IDS and str(message.chat.id) in CHAT_ID:
 
         args = message.text.split(' ')
@@ -273,6 +350,7 @@ async def brouwer_callback(query: types.CallbackQuery, callback_data: typing.Dic
 
 # RVB LIST
 
+
 @dp.callback_query_handler(rvb_cd.filter(action=['rvb_list']))
 async def rvb_list_callback(query: types.CallbackQuery):
 
@@ -306,6 +384,7 @@ async def rvb_list_callback(query: types.CallbackQuery):
             reply_markup=get_rvb_list_keyboard_alt()
         )
 
+
 @dp.callback_query_handler(rvb_cd.filter(action=['rvb_list_edit']))
 async def rvb_list_edit_callback(query: types.CallbackQuery):
 
@@ -325,7 +404,8 @@ async def rvb_list_edit_callback(query: types.CallbackQuery):
 
     if count > 0:
 
-        keyboard.row(types.InlineKeyboardButton('⬅️ Terug', callback_data=rvb_cd.new(action='rvb_list')))
+        keyboard.row(types.InlineKeyboardButton(
+            '⬅️ Terug', callback_data=rvb_cd.new(action='rvb_list')))
 
         await bot.edit_message_text(
             f'Klik op een punje om het uit de lijst te verwijderen.\n\n',
@@ -338,7 +418,8 @@ async def rvb_list_edit_callback(query: types.CallbackQuery):
     else:
 
         keyboard = InlineKeyboardMarkup()
-        keyboard.row(types.InlineKeyboardButton('⬅️ Terug', callback_data=rvb_cd.new(action='rvb_list')))
+        keyboard.row(types.InlineKeyboardButton(
+            '⬅️ Terug', callback_data=rvb_cd.new(action='rvb_list')))
 
         await bot.edit_message_text(
             f'Er zijn geen RVB-puntjes meer op te verwijderen.',
@@ -347,31 +428,33 @@ async def rvb_list_edit_callback(query: types.CallbackQuery):
             reply_markup=keyboard
         )
 
+
 @dp.callback_query_handler(rvb_del_cd.filter(action=['rvb_delete_item']))
 async def rvb_list_callback(query: types.CallbackQuery):
 
     await query.answer()
 
     item_position = int(query.data.split('rvb_delete_item:')[1])
-    
+
     rvb_list = read_from_json(path=RVB_JSON)
 
-    item_subject =  rvb_list['puntjes'][item_position]['subject']
+    item_subject = rvb_list['puntjes'][item_position]['subject']
 
     rvb_list['puntjes'].pop(item_position)
-    
+
     write_to_json(path=RVB_JSON, data=rvb_list)
 
     keyboard = InlineKeyboardMarkup()
-    keyboard.row(types.InlineKeyboardButton('⬅️ Terug', callback_data=rvb_cd.new(action='rvb_list_edit')))
+    keyboard.row(types.InlineKeyboardButton(
+        '⬅️ Terug', callback_data=rvb_cd.new(action='rvb_list_edit')))
 
     await bot.edit_message_text(
-            f'Puntje *{item_subject}* is verwijderd!',
-            query.message.chat.id,
-            query.message.message_id,
-            reply_markup=keyboard,
-            parse_mode=ParseMode.MARKDOWN
-        )
+        f'Puntje *{item_subject}* is verwijderd!',
+        query.message.chat.id,
+        query.message.message_id,
+        reply_markup=keyboard,
+        parse_mode=ParseMode.MARKDOWN
+    )
 
 
 @dp.message_handler(commands=['list'])
@@ -387,10 +470,11 @@ async def rvb_list_command(message: types.Message):
             who = item['who'] if 'who' in item else 'onbekend'
             overzicht.append(
                 f'*- {item["subject"]}* | Toegevoegd op *{item["date"]}* door *{who}* \n\n')
-        
+
         if len(overzicht) > 0:
 
-            keyboard = InlineKeyboardMarkup().row(types.InlineKeyboardButton('🖊️ Individuele items verwijderen', callback_data=rvb_cd.new(action='rvb_list_edit'))).row(types.InlineKeyboardButton('🗑️ Volledige lijst wissen', callback_data=rvb_cd.new(action='wipe_rvb_list_confirmation')))
+            keyboard = InlineKeyboardMarkup().row(types.InlineKeyboardButton('🖊️ Individuele items verwijderen', callback_data=rvb_cd.new(action='rvb_list_edit'))
+                                                  ).row(types.InlineKeyboardButton('🗑️ Volledige lijst wissen', callback_data=rvb_cd.new(action='wipe_rvb_list_confirmation')))
 
             await message.reply(
                 f'Dit zijn de RVB-puntjes van deze week:\n\n{"".join(overzicht)}',
