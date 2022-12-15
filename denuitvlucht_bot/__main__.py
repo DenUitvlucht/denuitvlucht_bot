@@ -73,7 +73,7 @@ wc_cd = CallbackData('vote', 'action')
 @dp.message_handler(commands=['denuitvlucht'])  # Start handler
 async def cmd_start(message: types.Message):
 
-    if str(message.from_id) in BESTUUR_IDS and str(message.chat.id) in CHAT_ID:
+    if str(message.from_id) in BESTUUR_IDS:
 
         await message.reply(f'Dag bestuurslid, wat kan ik voor je doen?', reply_markup=get_intro_keyboard())
 
@@ -171,7 +171,7 @@ async def payconiq_callback(query: types.CallbackQuery, callback_data: typing.Di
 @dp.message_handler(commands=['add'])
 async def cmd_add(message: types.Message):
 
-    if str(message.from_id) in BESTUUR_IDS and str(message.chat.id) in CHAT_ID:
+    if str(message.from_id) in BESTUUR_IDS:
 
         args = message.text.split(' ')
 
@@ -393,7 +393,7 @@ async def rvb_list_callback(query: types.CallbackQuery):
 @dp.message_handler(commands=['list'])
 async def rvb_list_command(message: types.Message):
 
-    if str(message.from_id) in BESTUUR_IDS and str(message.chat.id) in CHAT_ID:
+    if str(message.from_id) in BESTUUR_IDS:
 
         rvb_list = read_from_json(path=RVB_JSON)
 
