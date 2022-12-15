@@ -6,9 +6,14 @@ Telegram Bot that can perform various 'bestuurstaken'.
     - Bot sends notifications in chat for order placement and delivery.
 - Add additional points to a list.
 - Check your cleaning shift.
+- Payconiq integration.
+    - Check daily, weekly, monthly and yearly totals.
+    - Request QR-code.
 - Sends weekly polls to bar staff.
+- Request general information.
+    - E-mail, website, enterprise number and bank account number.
 
-![bot_main](https://user-images.githubusercontent.com/104348706/205510493-404b9fa4-97a4-4534-afa2-c368948bcb1c.png)
+![IMG_20221215_164309](https://user-images.githubusercontent.com/104348706/207904279-8c3f87dc-4941-4877-9140-3ce9d31dce5c.jpg)
 
 
 
@@ -41,18 +46,18 @@ Write down your API token.
 - FROM: E-mail address of the sender (denuitvlucht@gmail.com in our case ).
 - TO: E-mail address of the receiver (bestelling@omer.be in our case).
 - BARBEZETTING_CHAT_ID: Chat ID of the bar staff group, collected using IDBot.
+- PAYCONIQ_EMAIL: Your Payconiq e-mail address.
+- PAYCONIQ_PASSWORD: Your Payconiq password.
 
 ### Add order Excel sheet
 - Download the Excel sheet from [here](https://docs.google.com/spreadsheets/d/1AHRiLHvcQdF1H9SWYESQEUXlUnzsZPkk/edit?usp=share_link&ouid=102649168948120392447&rtpof=true&sd=true).
 - Add the file to **denuitvlucht_bot/data/**.
 
-### Create output folder
-- Create a new folder called 'output' in **denuitvlucht_bot/**.
-
 ### Add client secret
-- Generate an OAuth 2.0 Client ID file from Google Cloud Platform. More information can be found [here](https://github.com/jeremyephron/simplegmail).
-    - Rename the file to **client_secret.json**.
-
+- Generate an OAuth 2.0 Client ID file from Google Cloud Platform.
+    - Change the publishing status of your OAuth app to 'In Production'
+    - Download the OAuth credentials
+    - Rename the file to **credentials.json** and make sure it's present in the root directory of this project.
 
 
 ### Start the bot
@@ -73,7 +78,7 @@ python denuitvlucht_bot/
 
 ### Set Cronjob for order placement
 ```bash
-0 19 * * 4 python denuitvlucht_bot/data/place_order.py
+0 20 * * 4 python denuitvlucht_bot/data/place_order.py
 ```
 
 ## Usage
