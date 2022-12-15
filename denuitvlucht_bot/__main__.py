@@ -33,6 +33,7 @@ from bot.keyboards.rvb.rvb_keyboards import get_wipe_rvb_list_confirmation_keybo
 
 from bot.keyboards.financial.financial_keyboards import get_financial_keyboard
 from bot.keyboards.financial.financial_keyboards import get_payconiq_keyboard
+from bot.keyboards.financial.financial_keyboards import get_payconiq_totals_keyboard
 
 
 # Define paths
@@ -80,9 +81,18 @@ async def cmd_start(message: types.Message):
 
         await message.reply(f'Sorry deze bot kan enkel gebruikt worden in de bestuursgroep, door een toegelaten bestuurslid.')
 
-# Add handler
+@dp.callback_query_handler(rvb_cd.filter(action=['general_info']))
+async def general_info_callback(query: types.CallbackQuery, callback_data: typing.Dict[str, str]):
 
+    await query.answer()
 
+    await bot.edit_message_text(
+        f'📧 E-mail:\nbestuur@denuitvlucht.com\n\n🌐 Website:\ndenuitvlucht.com\n\n🗄️ Ondernemingsnummer:\n`0864.384.420`\n\n💳 Rekeningnummer:\n`BE92 7380 1090 2923`',
+        query.message.chat.id,
+        query.message.message_id,
+        parse_mode=ParseMode.MARKDOWN,
+        reply_markup=get_rvb_list_keyboard_alt()
+    )
 @dp.callback_query_handler(rvb_cd.filter(action=['financial_keyboard']))
 async def financial_callback(query: types.CallbackQuery, callback_data: typing.Dict[str, str]):
 
@@ -93,6 +103,19 @@ async def financial_callback(query: types.CallbackQuery, callback_data: typing.D
         query.message.chat.id,
         query.message.message_id,
         reply_markup=get_financial_keyboard()
+    )
+
+
+@dp.callback_query_handler(rvb_cd.filter(action=['payconiq_keyboard']))
+async def financial_callback(query: types.CallbackQuery, callback_data: typing.Dict[str, str]):
+
+    await query.answer()
+
+    await bot.edit_message_text(
+        'Payconiqs:',
+        query.message.chat.id,
+        query.message.message_id,
+        reply_markup=get_payconiq_keyboard()
     )
 
 
@@ -109,7 +132,7 @@ async def financial_callback(query: types.CallbackQuery, callback_data: typing.D
     )
 
 
-@dp.callback_query_handler(rvb_cd.filter(action=['payconiq']))
+@dp.callback_query_handler(rvb_cd.filter(action=['payconiq_totals']))
 async def payconiq_callback(query: types.CallbackQuery, callback_data: typing.Dict[str, str]):
 
     await query.answer()
@@ -141,7 +164,7 @@ async def payconiq_callback(query: types.CallbackQuery, callback_data: typing.Di
         query.message.chat.id,
         query.message.message_id,
         parse_mode=ParseMode.MARKDOWN,
-        reply_markup=get_payconiq_keyboard()
+        reply_markup=get_payconiq_totals_keyboard()
     )
 
 
