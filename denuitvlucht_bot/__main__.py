@@ -112,7 +112,7 @@ async def financial_callback(query: types.CallbackQuery, callback_data: typing.D
     await query.answer()
 
     await bot.edit_message_text(
-        'Payconiqs:',
+        'Payconiq opties:',
         query.message.chat.id,
         query.message.message_id,
         reply_markup=get_payconiq_keyboard()
@@ -270,7 +270,7 @@ async def brouwer_callback(query: types.CallbackQuery, callback_data: typing.Dic
                     f'*- {best["name"]} | {best["amount"]} {type}*\n')
                 bakken_count += int(best['amount'])
 
-    text = 'Dag brouwer,\n\n ⚠️ Momenteel staat er geen bestelling klaar. ⚠️\n\n' if bakken_count == 0 else 'Dag brouwer,\n\n⚠️ Het aantal bakken van je bestelling ligt nog onder de 15! ⚠️\n\n' if bakken_count < 15 else 'Dag brouwer,\n\ndit is je huidige bestelling:\n\n'
+    text = 'Dag brouwer,\n\n ⚠️ Momenteel staat er geen bestelling klaar.\n\n' if bakken_count == 0 else 'Dag brouwer,\n\n⚠️ Het aantal bakken van je bestelling ligt nog onder de 15! ⚠️\n\n' if bakken_count < 15 else 'Dag brouwer,\n\ndit is je huidige bestelling:\n\n'
     #text = 'Dag brouwer, dit is je huidige bestelling:\n\n' if bakken_count > 0 else 'Dag brouwer, momenteel staat er geen bestelling klaar.'
 
     await bot.edit_message_text(
