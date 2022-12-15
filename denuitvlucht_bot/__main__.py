@@ -18,6 +18,23 @@ from payments.payconiq import auth, get_payment_profile_ids, get_totals_from_pay
 
 from data.json_helper import read_from_json, write_to_json
 
+from bot.keyboards.general.general_keyboards import get_intro_keyboard
+
+from bot.keyboards.brouwer.brouwer_keyboards import get_brouwer_keyboard
+from bot.keyboards.brouwer.brouwer_keyboards import get_brouwer_category_keyboard
+from bot.keyboards.brouwer.brouwer_keyboards import get_brouwer_category_keyboard_edit
+from bot.keyboards.brouwer.brouwer_keyboards import get_brouwer_item_keyboard_edit
+
+from bot.keyboards.shifts.shifts_keyboards import get_wc_keyboard
+
+from bot.keyboards.rvb.rvb_keyboards import get_rvb_list_keyboard
+from bot.keyboards.rvb.rvb_keyboards import get_rvb_list_keyboard_alt
+from bot.keyboards.rvb.rvb_keyboards import get_wipe_rvb_list_confirmation_keyboard
+
+from bot.keyboards.financial.financial_keyboards import get_financial_keyboard
+from bot.keyboards.financial.financial_keyboards import get_payconiq_keyboard
+
+
 # Define paths
 AANBOD_JSON = os.path.join(
     os.getcwd(), 'denuitvlucht_bot', 'data', 'aanbod.json')
@@ -42,122 +59,15 @@ bot = Bot(token=API_TOKEN)
 dp = Dispatcher(bot)
 
 # Configure CallbackData
+general_cd = CallbackData('vote', 'action')
 brouwer_cd = CallbackData('vote', 'action')
 item_cd = CallbackData('vote', 'action', 'name', 'amount', 'category')
 rvb_cd = CallbackData('vote', 'action')
 rvb_del_cd = CallbackData('vote', 'action', 'position')
 wc_cd = CallbackData('vote', 'action')
-financial_cd = CallbackData('vote', 'action')
 
-# Keyboards
-
-
-def get_intro_keyboard():  # Main options for bestuur
-    return types.InlineKeyboardMarkup().row(
-        types.InlineKeyboardButton(
-            '🍺 Brouwer', callback_data=brouwer_cd.new(action='brouwer_keyboard'))).row(types.InlineKeyboardButton(
-                '💵 Financieel', callback_data=financial_cd.new(action='financial_keyboard'))).row(types.InlineKeyboardButton(
-                    '📖 RVB-puntjes', callback_data=rvb_cd.new(action='rvb_list'))).row(types.InlineKeyboardButton(
-                        '🚽 WC-shift', callback_data=wc_cd.new(action='wc_shift'))
-    )
-
-
-def get_brouwer_keyboard():  # Brouwer keyboard with option(s)
-    return types.InlineKeyboardMarkup().row(
-        types.InlineKeyboardButton('🖊️ Bestelling aanpassen/toevoegen', callback_data=item_cd.new(
-            action='brouwer_edit_current_order_category', name='', amount='', category='')),
-    ).row(types.InlineKeyboardButton('⬅️ Terug', callback_data=brouwer_cd.new(action='denuitvlucht')))
-
-
-def get_wc_keyboard():  # WC keyboard with option(s)
-    return types.InlineKeyboardMarkup().row(
-        types.InlineKeyboardButton('⏩ Volgende shift', callback_data=wc_cd.new(
-            action='next_wc_shift')),
-    ).row(types.InlineKeyboardButton('⬅️ Terug', callback_data=wc_cd.new(action='denuitvlucht')))
-
-
-def get_rvb_list_keyboard():  # RVB List keyboard with option(s)
-    return types.InlineKeyboardMarkup().row(types.InlineKeyboardButton('🖊️ Individuele items verwijderen', callback_data=rvb_cd.new(action='rvb_list_edit'))).row(types.InlineKeyboardButton('🗑️ Volledige lijst wissen', callback_data=rvb_cd.new(action='wipe_rvb_list_confirmation'))).row(types.InlineKeyboardButton('⬅️ Terug', callback_data=rvb_cd.new(action='denuitvlucht')))
-
-
-def get_rvb_list_keyboard_alt():  # Alt RVB List keyboard with option(s)
-    return types.InlineKeyboardMarkup().row(types.InlineKeyboardButton('⬅️ Terug', callback_data=rvb_cd.new(action='denuitvlucht')))
-
-
-def get_wipe_rvb_list_confirmation_keyboard():  # RVB List confirmation keyboard
-    return types.InlineKeyboardMarkup().row(types.InlineKeyboardButton('✅ JA', callback_data=rvb_cd.new(action='wipe_rvb_list'))).row(types.InlineKeyboardButton('❌ NEE', callback_data=rvb_cd.new(action='rvb_list')))
-
-
-def get_brouwer_category_keyboard(name, amount):  # Category keyboard
-
-    keyboard = InlineKeyboardMarkup()
-
-    aanbod = read_from_json(path=AANBOD_JSON)
-
-    for category in aanbod:
-
-        keyboard.row(types.InlineKeyboardButton(
-            text=category, callback_data=item_cd.new(action=f'edit_category', name='', amount='', category=category)))
-
-    keyboard.row(types.InlineKeyboardButton('⬅️ Terug', callback_data=brouwer_cd.new(
-        action='brouwer_keyboard')))
-    return keyboard
-
-
-# Keyboard with all items and their amounts
-def get_brouwer_edit_category_keyboard(name, amount, category):
-
-    aanbod = read_from_json(path=AANBOD_JSON)
-
-    # Write new data if needed
-
-    if name != '' and amount != '':
-
-        for best in aanbod[category]:
-
-            if name in best['name']:
-
-                best['amount'] = amount
-
-        write_to_json(path=AANBOD_JSON, data=aanbod)
-
-        aanbod = read_from_json(path=AANBOD_JSON)
-
-    keyboard = InlineKeyboardMarkup()
-
-    for optie in aanbod[category]:
-
-        type = 'bak(ken)' if 'Liter' not in optie['name'] else 'vat(en)'
-
-        keyboard.row(types.InlineKeyboardButton(
-            text=f"{optie['name']} | {optie['price']} | {optie['amount']} {type}", callback_data=item_cd.new(action=f'edit_item', name=optie['name'], amount=optie['amount'], category=category)))
-
-    keyboard.row(types.InlineKeyboardButton('⬅️ Terug', callback_data=item_cd.new(
-        action='brouwer_edit_current_order_category', name='', amount='', category=category)))
-    return keyboard
-
-
-def get_edit_keyboard(amount, name, category):  # Keyboard to change amounts
-    return types.InlineKeyboardMarkup().row(
-        types.InlineKeyboardButton('⬇️ Verlaag', callback_data=item_cd.new(
-            action='minus', amount=amount, name=name, category=category)),
-
-        types.InlineKeyboardButton('⬆️ Verhoog', callback_data=item_cd.new(
-            action='plus', amount=amount, name=name, category=category))
-
-    ).row(types.InlineKeyboardButton('⬅️ Terug en opslaan', callback_data=item_cd.new(
-        action=f'edit_category', name=name, amount=amount, category=category)))
-
-
-def get_financial_keyboard():  # Financial keyboard with option(s)
-    return types.InlineKeyboardMarkup().row(types.InlineKeyboardButton('Payconiq-overzicht', callback_data=financial_cd.new(action='payconiq'))).row(types.InlineKeyboardButton('Payconiq QR', callback_data=financial_cd.new(action='payconiq_qr'))).row(types.InlineKeyboardButton('⬅️ Terug', callback_data=rvb_cd.new(action='denuitvlucht')))
-
-
-def get_payconiq_keyboard():  # Payconiq keyboard
-    return types.InlineKeyboardMarkup().row(types.InlineKeyboardButton('⬅️ Terug', callback_data=rvb_cd.new(action='financial_keyboard')))
 
 # Handlers
-
 
 @dp.message_handler(commands=['denuitvlucht'])  # Start handler
 async def cmd_start(message: types.Message):
@@ -578,7 +488,7 @@ async def brouwer_edit_bestelling_callback(query: types.CallbackQuery, callback_
     await bot.edit_message_text(f"Categorie {callback_data['category']}",
                                 query.message.chat.id,
                                 query.message.message_id,
-                                reply_markup=get_brouwer_edit_category_keyboard(amount=callback_data['amount'], name=callback_data['name'], category=callback_data['category']))
+                                reply_markup=get_brouwer_category_keyboard_edit(amount=callback_data['amount'], name=callback_data['name'], category=callback_data['category']))
 
 
 @dp.callback_query_handler(item_cd.filter(action='edit_item'))  # Edit item
@@ -591,7 +501,7 @@ async def brouwer_edit_bestelling_callback(query: types.CallbackQuery, callback_
     await bot.edit_message_text(f"Momenteel staan er *{callback_data['amount']}* {type} *{callback_data['name']}* in de bestelling",
                                 query.message.chat.id,
                                 query.message.message_id,
-                                reply_markup=get_edit_keyboard(amount=callback_data['amount'], name=callback_data['name'], category=callback_data['category']), parse_mode=ParseMode.MARKDOWN)
+                                reply_markup=get_brouwer_item_keyboard_edit(amount=callback_data['amount'], name=callback_data['name'], category=callback_data['category']), parse_mode=ParseMode.MARKDOWN)
 
 
 @dp.callback_query_handler(item_cd.filter(action='plus'))  # Increment amount
@@ -607,7 +517,7 @@ async def vote_plus_cb_handler(query: types.CallbackQuery, callback_data: dict):
     await bot.edit_message_text(f'Aantal aangepast! Er staan nu *{amount}* {type} *{name}* in de bestelling.',
                                 query.message.chat.id,
                                 query.message.message_id,
-                                reply_markup=get_edit_keyboard(amount, callback_data['name'], category), parse_mode=ParseMode.MARKDOWN)
+                                reply_markup=get_brouwer_item_keyboard_edit(amount, callback_data['name'], category), parse_mode=ParseMode.MARKDOWN)
 
 
 @dp.callback_query_handler(item_cd.filter(action='minus'))  # Decrease amount
@@ -625,7 +535,7 @@ async def vote_minus_cb_handler(query: types.CallbackQuery, callback_data: dict)
         await bot.edit_message_text(f'Aantal aangepast! Er staan nu *{amount}* {type} *{name}* in de bestelling.',
                                     query.message.chat.id,
                                     query.message.message_id,
-                                    reply_markup=get_edit_keyboard(amount, callback_data['name'], category=category), parse_mode=ParseMode.MARKDOWN)
+                                    reply_markup=get_brouwer_item_keyboard_edit(amount, callback_data['name'], category=category), parse_mode=ParseMode.MARKDOWN)
 
 
 # handle the cases when this exception raises

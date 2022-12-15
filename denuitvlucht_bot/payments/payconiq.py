@@ -15,6 +15,8 @@ PAYCONIQ_PAYMENT_PROFILES_URL = 'https://portal.payconiq.com/merchant-portal/api
 PAYCONIQ_TOTALS_URL = 'https://portal.payconiq.com/merchant-portal/api/transactions/totals'
 
 TOTAL_SUMMARIES = ['Vandaag', 'Deze week', 'Deze maand', 'Dit jaar']
+
+
 def auth():
 
     SESSION = requests.Session()
@@ -69,8 +71,8 @@ def get_totals_from_payment_profile_id(SESSION: requests.Session, payment_profil
     now = datetime.datetime.now().strftime('%Y-%m-%dT00:00:01Z')
 
     yesterday = (datetime.datetime.today() -
-             datetime.timedelta(days=1)).strftime('%Y-%m-%dT00:00:01Z')
-             
+                 datetime.timedelta(days=1)).strftime('%Y-%m-%dT00:00:01Z')
+
     today = datetime.datetime.today()
 
     start_of_week = (today - datetime.timedelta(
@@ -132,6 +134,3 @@ def get_totals_from_payment_profile_id(SESSION: requests.Session, payment_profil
         total['intervalType'] = TOTAL_SUMMARIES[index]
 
     return totals_json
-
-
-
