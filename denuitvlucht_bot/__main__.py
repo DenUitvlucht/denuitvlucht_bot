@@ -35,6 +35,8 @@ from bot.keyboards.financial.financial_keyboards import get_financial_keyboard
 from bot.keyboards.financial.financial_keyboards import get_payconiq_keyboard
 from bot.keyboards.financial.financial_keyboards import get_payconiq_totals_keyboard
 
+from bot.keyboards.boodschappen.boodschappen_keyboards import get_boodschappen_keyboard
+
 
 # Define paths
 AANBOD_JSON = os.path.join(
@@ -51,6 +53,7 @@ BESTUUR_IDS = os.getenv('BESTUUR_IDS').split(',')
 CHAT_ID = os.getenv('CHAT_ID').split(',')
 
 PAYCONIQ_QR = os.path.join(os.getcwd(), 'denuitvlucht_bot', 'data', 'qr.jpg',)
+COLRUYT_CARD = os.path.join(os.getcwd(), 'denuitvlucht_bot', 'data', 'colruyt_card.jpg',)
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -167,6 +170,29 @@ async def payconiq_callback(query: types.CallbackQuery, callback_data: typing.Di
         reply_markup=get_payconiq_totals_keyboard()
     )
 
+@dp.callback_query_handler(rvb_cd.filter(action=['boodschappen_keyboard']))
+async def financial_callback(query: types.CallbackQuery, callback_data: typing.Dict[str, str]):
+
+    await query.answer()
+
+    await bot.edit_message_text(
+        'Boodschappen opties:',
+        query.message.chat.id,
+        query.message.message_id,
+        reply_markup=get_boodschappen_keyboard()
+    )
+
+@dp.callback_query_handler(rvb_cd.filter(action=['colruyt_card']))
+async def colruyt_card_callback(query: types.CallbackQuery, callback_data: typing.Dict[str, str]):
+
+    await query.answer()
+
+    card = InputFile(path_or_bytesio=COLRUYT_CARD)
+
+    await bot.send_photo(
+        photo=card,
+        chat_id=query.message.chat.id
+    )
 
 @dp.message_handler(commands=['add'])
 async def cmd_add(message: types.Message):
