@@ -69,7 +69,7 @@ def get_brouwer_category_keyboard_edit(name, amount, category):
         type = 'bak(ken)' if 'Liter' not in optie['name'] else 'vat(en)'
 
         keyboard.row(types.InlineKeyboardButton(
-            text=f"{optie['name']} | {optie['price']} | {optie['amount']} {type}", callback_data=item_cd.new(action=f'edit_item', name=optie['name'], amount=optie['amount'], category=category)))
+            text=f"{optie['name']} | €{str(round(float(optie['price_incl_btw']) + float(optie['return_amount']), 2)).replace('.',',')} | {optie['amount']} {type}", callback_data=item_cd.new(action=f'edit_item', name=optie['name'], amount=optie['amount'], category=category)))
 
     keyboard.row(types.InlineKeyboardButton('⬅️ Terug', callback_data=item_cd.new(
         action='brouwer_edit_current_order_category', name='', amount='', category=category)))

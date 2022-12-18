@@ -487,7 +487,7 @@ async def next_wc_shift_handler(query: types.CallbackQuery, callback_data: dict)
 
 
 @dp.callback_query_handler(item_cd.filter(action=['brouwer_edit_current_order_category']))
-async def brouwer_edit_bestelling_callback(query: types.CallbackQuery, callback_data: typing.Dict[str, str]):
+async def brouwer_category_callback(query: types.CallbackQuery, callback_data: typing.Dict[str, str]):
 
     await query.answer()
 
@@ -518,10 +518,22 @@ async def brouwer_edit_bestelling_callback(query: types.CallbackQuery, callback_
 async def brouwer_edit_bestelling_callback(query: types.CallbackQuery, callback_data: typing.Dict[str, str]):
 
     await query.answer()
+    
+    aanbod = read_from_json(path=AANBOD_JSON)
+    
+    item = [ item for item in aanbod[callback_data['category']] if item['name'] == callback_data['name'] ][0]
+
+    price_excl_btw = str(item['price_excl_btw']).replace('.',',')
+    price_incl_btw = str(item['price_incl_btw']).replace('.',',')
+    return_amount = str(item['return_amount']).replace('.',',')
+    unit_price = str(round(float(item['price_incl_btw']) + float(item['return_amount']), 2)).replace('.',',')
+
+    prices = f'ℹ️ *Informatie:*\nAankoopprijs excl. BTW: `€{price_excl_btw}`\nAankoopprijs incl. BTW: `€{price_incl_btw}`\nLeeggoed: `€{return_amount}`\nTotale aankoopprijs (incl. + leeggoed): `€{unit_price}`\n\n'
 
     type = 'bak(ken)' if 'Liter' not in callback_data['name'] else 'vat(en)'
+    #prices = f'Prijs excl. BTW: `{callback_data["price_excl_btw"]}`\nPrijs incl. BTW `{callback_data["price_incl_btw"]}`'
 
-    await bot.edit_message_text(f"Momenteel staan er *{callback_data['amount']}* {type} *{callback_data['name']}* in de bestelling",
+    await bot.edit_message_text(f"{prices}Momenteel staan er *{callback_data['amount']}* {type} *{callback_data['name']}* in de bestelling",
                                 query.message.chat.id,
                                 query.message.message_id,
                                 reply_markup=get_brouwer_item_keyboard_edit(amount=callback_data['amount'], name=callback_data['name'], category=callback_data['category']), parse_mode=ParseMode.MARKDOWN)
