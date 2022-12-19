@@ -35,6 +35,8 @@ from bot.keyboards.rvb.rvb_keyboards import get_wipe_rvb_list_confirmation_keybo
 from bot.keyboards.financial.financial_keyboards import get_financial_keyboard
 from bot.keyboards.financial.financial_keyboards import get_payconiq_keyboard
 from bot.keyboards.financial.financial_keyboards import get_payconiq_totals_keyboard
+from bot.keyboards.financial.financial_keyboards import get_sumup_keyboard
+from bot.keyboards.financial.financial_keyboards import get_sumup_totals_keyboard
 
 from bot.keyboards.boodschappen.boodschappen_keyboards import get_boodschappen_keyboard
 
@@ -71,9 +73,10 @@ item_cd = CallbackData('vote', 'action', 'name', 'amount', 'category')
 rvb_cd = CallbackData('vote', 'action')
 rvb_del_cd = CallbackData('vote', 'action', 'position')
 wc_cd = CallbackData('vote', 'action')
-
+financial_cd = CallbackData('vote', 'action')
 
 # Handlers
+
 
 @dp.message_handler(commands=['start'])
 async def handler(message: types.Message):
@@ -82,66 +85,8 @@ async def handler(message: types.Message):
     if args != '' and str(message.from_id) in BESTUUR_IDS:
 
         get_refresh_token(code=args)
-    
+
         await message.answer(text=f'Dag bestuurslid. *De SumUp authenticatie is voltooid!*\nJullie kunnen vanaf nu de transactie historiek opvragen via de bot.', parse_mode=ParseMode.MARKDOWN,)
-
-
-@dp.message_handler(commands=['sumupauth'])
-async def handler(message: types.Message):
-
-    if str(message.from_id) in BESTUUR_IDS:
-
-        keyboard = InlineKeyboardMarkup().add(
-            types.InlineKeyboardButton('🔑 Login', url=auth()))
-
-        await message.reply(text='*SumUp Authenticatie*\n\nJe zal doorgestuurd worden naar het OAuth2-portaal van Den Uitvlucht vzw', reply_markup=keyboard, parse_mode=ParseMode.MARKDOWN,)
-    else:
-        await message.reply(f'Sorry deze bot kan enkel gebruikt worden door een toegelaten bestuurslid.')
-
-
-@dp.message_handler(commands=['sumup'])
-async def handler(message: types.Message):
-
-    if str(message.from_id) in BESTUUR_IDS:
-
-        # Dates
-        today = datetime.datetime.today()
-        yesterday = (datetime.datetime.today() -
-                     datetime.timedelta(days=1)).strftime('%Y-%m-%d')
-        start_of_week = (today - datetime.timedelta(
-            days=today.weekday())).strftime('%Y-%m-%d')
-
-        start_of_month = (today - datetime.timedelta(
-            days=today.day-1)).strftime('%Y-%m-%d')
-
-        access_token = get_access_token()
-        
-        transactions_since_yesterday = get_sumup_transactions(
-            access_token=access_token,
-            start_date=yesterday,
-            end_date=today.strftime('%Y-%m-%d')
-        )
-
-        transactions_since_start_of_week = get_sumup_transactions(
-            access_token=access_token,
-            start_date=start_of_week,
-            end_date=today.strftime('%Y-%m-%d')
-        )
-
-        transactions_since_start_of_month = get_sumup_transactions(
-            access_token=access_token,
-            start_date=start_of_month,
-            end_date=today.strftime('%Y-%m-%d')
-        )
-
-        text = f'''*Totaal sinds gisteren:*\n€{transactions_since_yesterday["revenue"]}\n-> {transactions_since_yesterday["transaction_count"]} transacties\n\n
-*Totaal sinds begin van de week:*\n€{transactions_since_start_of_week["revenue"]}\n-> {transactions_since_start_of_week["transaction_count"]} transacties\n\n
-*Totaal sinds begin van de maand:*\n€{transactions_since_start_of_month["revenue"]}\n-> {transactions_since_start_of_month["transaction_count"]} transacties\n\n
-        '''
-
-        await message.reply(text=text, parse_mode=ParseMode.MARKDOWN,)
-    else:
-        await message.reply(f'Sorry deze bot kan enkel gebruikt worden door een toegelaten bestuurslid.')
 
 
 @dp.message_handler(commands=['denuitvlucht'])  # Start handler
@@ -243,6 +188,74 @@ async def payconiq_callback(query: types.CallbackQuery, callback_data: typing.Di
         parse_mode=ParseMode.MARKDOWN,
         reply_markup=get_payconiq_totals_keyboard()
     )
+
+
+@dp.callback_query_handler(rvb_cd.filter(action=['sumup_keyboard']))
+async def sumup_callback(query: types.CallbackQuery, callback_data: typing.Dict[str, str]):
+
+    await query.answer()
+
+    await bot.edit_message_text(
+        'SumUp opties:',
+        query.message.chat.id,
+        query.message.message_id,
+        reply_markup=get_sumup_keyboard()
+    )
+
+
+@dp.callback_query_handler(rvb_cd.filter(action=['sumup_auth']))
+async def sumup_auth_callback(query: types.CallbackQuery, callback_data: typing.Dict[str, str]):
+
+    await query.answer()
+
+    keyboard = InlineKeyboardMarkup().add(
+        types.InlineKeyboardButton('🔑 Login', url=auth())).add(
+        types.InlineKeyboardButton('⬅️ Terug', callback_data=financial_cd.new(action='sumup_keyboard')))
+
+    await bot.edit_message_text('*SumUp Authenticatie*\n\nJe zal doorgestuurd worden naar het OAuth2-portaal van Den Uitvlucht vzw', query.message.chat.id, query.message.message_id, reply_markup=keyboard, parse_mode=ParseMode.MARKDOWN,)
+
+
+@dp.callback_query_handler(rvb_cd.filter(action=['sumup_totals']))
+async def sumup_totals_callback(query: types.CallbackQuery, callback_data: typing.Dict[str, str]):
+
+    await query.answer()
+
+    # Dates
+    today = datetime.datetime.today()
+    yesterday = (datetime.datetime.today() -
+                 datetime.timedelta(days=1)).strftime('%Y-%m-%d')
+    start_of_week = (today - datetime.timedelta(
+        days=today.weekday())).strftime('%Y-%m-%d')
+
+    start_of_month = (today - datetime.timedelta(
+        days=today.day-1)).strftime('%Y-%m-%d')
+
+    access_token = get_access_token()
+
+    transactions_since_yesterday = get_sumup_transactions(
+        access_token=access_token,
+        start_date=yesterday,
+        end_date=today.strftime('%Y-%m-%d')
+    )
+
+    transactions_since_start_of_week = get_sumup_transactions(
+        access_token=access_token,
+        start_date=start_of_week,
+        end_date=today.strftime('%Y-%m-%d')
+    )
+
+    transactions_since_start_of_month = get_sumup_transactions(
+        access_token=access_token,
+        start_date=start_of_month,
+        end_date=today.strftime('%Y-%m-%d')
+    )
+
+    text = f'''*Totaal sinds gisteren:*\n€{transactions_since_yesterday["revenue"]}\n-> {transactions_since_yesterday["transaction_count"]} transacties\n\n
+*Totaal sinds begin van de week:*\n€{transactions_since_start_of_week["revenue"]}\n-> {transactions_since_start_of_week["transaction_count"]} transacties\n\n
+*Totaal sinds begin van de maand:*\n€{transactions_since_start_of_month["revenue"]}\n-> {transactions_since_start_of_month["transaction_count"]} transacties\n\n
+    '''
+
+    await bot.edit_message_text(text, query.message.chat.id, query.message.message_id, parse_mode=ParseMode.MARKDOWN,reply_markup=get_sumup_totals_keyboard())
 
 
 @dp.callback_query_handler(rvb_cd.filter(action=['boodschappen_keyboard']))
