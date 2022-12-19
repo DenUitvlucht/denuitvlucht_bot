@@ -14,8 +14,8 @@ from aiogram.types import InlineKeyboardMarkup, ParseMode
 from aiogram.utils.exceptions import MessageNotModified
 from aiogram.types.input_file import InputFile
 
-from payments.payconiq import auth, get_payment_profile_ids, get_totals_from_payment_profile_id
-from payments.sumup import auth, get_access_token, get_refresh_token, get_sumup_transactions
+from payments.payconiq import payconiq_auth, get_payment_profile_ids, get_totals_from_payment_profile_id
+from payments.sumup import sumup_auth, get_access_token, get_refresh_token, get_sumup_transactions
 
 from data.json_helper import read_from_json, write_to_json
 
@@ -159,7 +159,7 @@ async def payconiq_callback(query: types.CallbackQuery, callback_data: typing.Di
 
     await query.answer()
 
-    data = auth()
+    data = payconiq_auth()
 
     ids = get_payment_profile_ids(
         data['session'],
@@ -209,7 +209,7 @@ async def sumup_auth_callback(query: types.CallbackQuery, callback_data: typing.
     await query.answer()
 
     keyboard = InlineKeyboardMarkup().add(
-        types.InlineKeyboardButton('🔑 Login', url=auth())).add(
+        types.InlineKeyboardButton('🔑 Login', url=sumup_auth())).add(
         types.InlineKeyboardButton('⬅️ Terug', callback_data=financial_cd.new(action='sumup_keyboard')))
 
     await bot.edit_message_text('*SumUp Authenticatie*\n\nJe zal doorgestuurd worden naar het OAuth2-portaal van Den Uitvlucht vzw', query.message.chat.id, query.message.message_id, reply_markup=keyboard, parse_mode=ParseMode.MARKDOWN,)
@@ -559,7 +559,7 @@ async def wc_shift_callback(query: types.CallbackQuery):
             has_to_clean = shift['name']
 
     await bot.edit_message_text(
-        f'🚽 *{has_to_clean}* moet deze week de WC kuisen. Veel kuisplezier!',
+        f'🚽 *{has_to_clean}* moet deze week de WC kuisen en de was doen. Veel kuisplezier!',
         query.message.chat.id,
         query.message.message_id,
         reply_markup=get_wc_keyboard(),

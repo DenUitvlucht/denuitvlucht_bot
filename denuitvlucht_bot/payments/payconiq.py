@@ -17,7 +17,7 @@ PAYCONIQ_TOTALS_URL = 'https://portal.payconiq.com/merchant-portal/api/transacti
 TOTAL_SUMMARIES = ['Vandaag', 'Deze week', 'Deze maand', 'Dit jaar']
 
 
-def auth():
+def payconiq_auth():
 
     SESSION = requests.Session()
 

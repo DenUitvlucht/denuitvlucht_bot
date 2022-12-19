@@ -21,7 +21,7 @@ SUMUP_JSON = os.path.join(
     os.getcwd(), 'sumup_token.json')
 
 
-def auth():
+def sumup_auth():
 
     SESSION = requests.Session()
 
