@@ -15,6 +15,7 @@ from aiogram.utils.exceptions import MessageNotModified
 from aiogram.types.input_file import InputFile
 
 from payments.payconiq import auth, get_payment_profile_ids, get_totals_from_payment_profile_id
+from payments.sumup import auth, get_access_token, get_refresh_token, get_sumup_transactions
 
 from data.json_helper import read_from_json, write_to_json
 
@@ -53,7 +54,8 @@ BESTUUR_IDS = os.getenv('BESTUUR_IDS').split(',')
 CHAT_ID = os.getenv('CHAT_ID').split(',')
 
 PAYCONIQ_QR = os.path.join(os.getcwd(), 'denuitvlucht_bot', 'data', 'qr.jpg',)
-COLRUYT_CARD = os.path.join(os.getcwd(), 'denuitvlucht_bot', 'data', 'colruyt_card.jpg',)
+COLRUYT_CARD = os.path.join(
+    os.getcwd(), 'denuitvlucht_bot', 'data', 'colruyt_card.jpg',)
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -73,6 +75,75 @@ wc_cd = CallbackData('vote', 'action')
 
 # Handlers
 
+@dp.message_handler(commands=['start'])
+async def handler(message: types.Message):
+
+    args = message.get_args()
+    if args != '' and str(message.from_id) in BESTUUR_IDS:
+
+        get_refresh_token(code=args)
+    
+        await message.answer(text=f'Dag bestuurslid. *De SumUp authenticatie is voltooid!*\nJullie kunnen vanaf nu de transactie historiek opvragen via de bot.', parse_mode=ParseMode.MARKDOWN,)
+
+
+@dp.message_handler(commands=['sumupauth'])
+async def handler(message: types.Message):
+
+    if str(message.from_id) in BESTUUR_IDS:
+
+        keyboard = InlineKeyboardMarkup().add(
+            types.InlineKeyboardButton('🔑 Login', url=auth()))
+
+        await message.reply(text='*SumUp Authenticatie*\n\nJe zal doorgestuurd worden naar het OAuth2-portaal van Den Uitvlucht vzw', reply_markup=keyboard, parse_mode=ParseMode.MARKDOWN,)
+    else:
+        await message.reply(f'Sorry deze bot kan enkel gebruikt worden door een toegelaten bestuurslid.')
+
+
+@dp.message_handler(commands=['sumup'])
+async def handler(message: types.Message):
+
+    if str(message.from_id) in BESTUUR_IDS:
+
+        # Dates
+        today = datetime.datetime.today()
+        yesterday = (datetime.datetime.today() -
+                     datetime.timedelta(days=1)).strftime('%Y-%m-%d')
+        start_of_week = (today - datetime.timedelta(
+            days=today.weekday())).strftime('%Y-%m-%d')
+
+        start_of_month = (today - datetime.timedelta(
+            days=today.day-1)).strftime('%Y-%m-%d')
+
+        access_token = get_access_token()
+        
+        transactions_since_yesterday = get_sumup_transactions(
+            access_token=access_token,
+            start_date=yesterday,
+            end_date=today.strftime('%Y-%m-%d')
+        )
+
+        transactions_since_start_of_week = get_sumup_transactions(
+            access_token=access_token,
+            start_date=start_of_week,
+            end_date=today.strftime('%Y-%m-%d')
+        )
+
+        transactions_since_start_of_month = get_sumup_transactions(
+            access_token=access_token,
+            start_date=start_of_month,
+            end_date=today.strftime('%Y-%m-%d')
+        )
+
+        text = f'''*Totaal sinds gisteren:*\n€{transactions_since_yesterday["revenue"]}\n-> {transactions_since_yesterday["transaction_count"]} transacties\n\n
+*Totaal sinds begin van de week:*\n€{transactions_since_start_of_week["revenue"]}\n-> {transactions_since_start_of_week["transaction_count"]} transacties\n\n
+*Totaal sinds begin van de maand:*\n€{transactions_since_start_of_month["revenue"]}\n-> {transactions_since_start_of_month["transaction_count"]} transacties\n\n
+        '''
+
+        await message.reply(text=text, parse_mode=ParseMode.MARKDOWN,)
+    else:
+        await message.reply(f'Sorry deze bot kan enkel gebruikt worden door een toegelaten bestuurslid.')
+
+
 @dp.message_handler(commands=['denuitvlucht'])  # Start handler
 async def cmd_start(message: types.Message):
 
@@ -82,7 +153,8 @@ async def cmd_start(message: types.Message):
 
     else:
 
-        await message.reply(f'Sorry deze bot kan enkel gebruikt worden in de bestuursgroep, door een toegelaten bestuurslid.')
+        await message.reply(f'Sorry deze bot kan enkel gebruikt worden door een toegelaten bestuurslid.')
+
 
 @dp.callback_query_handler(rvb_cd.filter(action=['general_info']))
 async def general_info_callback(query: types.CallbackQuery, callback_data: typing.Dict[str, str]):
@@ -96,6 +168,8 @@ async def general_info_callback(query: types.CallbackQuery, callback_data: typin
         parse_mode=ParseMode.MARKDOWN,
         reply_markup=get_rvb_list_keyboard_alt()
     )
+
+
 @dp.callback_query_handler(rvb_cd.filter(action=['financial_keyboard']))
 async def financial_callback(query: types.CallbackQuery, callback_data: typing.Dict[str, str]):
 
@@ -170,6 +244,7 @@ async def payconiq_callback(query: types.CallbackQuery, callback_data: typing.Di
         reply_markup=get_payconiq_totals_keyboard()
     )
 
+
 @dp.callback_query_handler(rvb_cd.filter(action=['boodschappen_keyboard']))
 async def financial_callback(query: types.CallbackQuery, callback_data: typing.Dict[str, str]):
 
@@ -182,6 +257,7 @@ async def financial_callback(query: types.CallbackQuery, callback_data: typing.D
         reply_markup=get_boodschappen_keyboard()
     )
 
+
 @dp.callback_query_handler(rvb_cd.filter(action=['colruyt_card']))
 async def colruyt_card_callback(query: types.CallbackQuery, callback_data: typing.Dict[str, str]):
 
@@ -193,6 +269,7 @@ async def colruyt_card_callback(query: types.CallbackQuery, callback_data: typin
         photo=card,
         chat_id=query.message.chat.id
     )
+
 
 @dp.message_handler(commands=['add'])
 async def cmd_add(message: types.Message):
@@ -220,7 +297,7 @@ async def cmd_add(message: types.Message):
             write_to_json(path=RVB_JSON, data=rvb_list)
     else:
 
-        await message.reply(f'Sorry deze bot kan enkel gebruikt worden in de bestuursgroep, door een toegelaten bestuurslid.')
+        await message.reply(f'Sorry deze bot kan enkel gebruikt worden door een toegelaten bestuurslid.')
 
 # Wipe handler
 
@@ -449,7 +526,7 @@ async def rvb_list_command(message: types.Message):
 
     else:
 
-        await message.reply(f'Sorry deze bot kan enkel gebruikt worden in de bestuursgroep, door een toegelaten bestuurslid.')
+        await message.reply(f'Sorry deze bot kan enkel gebruikt worden door een toegelaten bestuurslid.')
 
 # WC SHIFT
 
@@ -544,15 +621,17 @@ async def brouwer_edit_bestelling_callback(query: types.CallbackQuery, callback_
 async def brouwer_edit_bestelling_callback(query: types.CallbackQuery, callback_data: typing.Dict[str, str]):
 
     await query.answer()
-    
-    aanbod = read_from_json(path=AANBOD_JSON)
-    
-    item = [ item for item in aanbod[callback_data['category']] if item['name'] == callback_data['name'] ][0]
 
-    price_excl_btw = str(item['price_excl_btw']).replace('.',',')
-    price_incl_btw = str(item['price_incl_btw']).replace('.',',')
-    return_amount = str(item['return_amount']).replace('.',',')
-    unit_price = str(round(float(item['price_incl_btw']) + float(item['return_amount']), 2)).replace('.',',')
+    aanbod = read_from_json(path=AANBOD_JSON)
+
+    item = [item for item in aanbod[callback_data['category']]
+            if item['name'] == callback_data['name']][0]
+
+    price_excl_btw = str(item['price_excl_btw']).replace('.', ',')
+    price_incl_btw = str(item['price_incl_btw']).replace('.', ',')
+    return_amount = str(item['return_amount']).replace('.', ',')
+    unit_price = str(round(float(
+        item['price_incl_btw']) + float(item['return_amount']), 2)).replace('.', ',')
 
     prices = f'ℹ️ *Informatie:*\nAankoopprijs excl. BTW: `€{price_excl_btw}`\nAankoopprijs incl. BTW: `€{price_incl_btw}`\nLeeggoed: `€{return_amount}`\nTotale aankoopprijs (incl. + leeggoed): `€{unit_price}`\n\n'
 
