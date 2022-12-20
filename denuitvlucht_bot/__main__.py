@@ -13,6 +13,7 @@ from aiogram.utils.callback_data import CallbackData
 from aiogram.types import InlineKeyboardMarkup, ParseMode
 from aiogram.utils.exceptions import MessageNotModified
 from aiogram.types.input_file import InputFile
+from aiogram.types.input_media import InputMediaPhoto
 
 from payments.payconiq import payconiq_auth, get_payment_profile_ids, get_totals_from_payment_profile_id
 from payments.sumup import sumup_auth, get_access_token, get_refresh_token, get_sumup_transactions
@@ -39,6 +40,7 @@ from bot.keyboards.financial.financial_keyboards import get_sumup_keyboard
 from bot.keyboards.financial.financial_keyboards import get_sumup_totals_keyboard
 
 from bot.keyboards.boodschappen.boodschappen_keyboards import get_boodschappen_keyboard
+from bot.keyboards.boodschappen.boodschappen_keyboards import get_colruyt_card_keyboard
 
 
 # Define paths
@@ -133,12 +135,29 @@ async def financial_callback(query: types.CallbackQuery, callback_data: typing.D
 
     await query.answer()
 
-    await bot.edit_message_text(
-        'Payconiq opties:',
-        query.message.chat.id,
-        query.message.message_id,
-        reply_markup=get_payconiq_keyboard()
-    )
+    with open('test.json', 'w') as f:
+        f.write(str(query))
+        f.close()
+
+    if 'photo' in query.message:
+
+        await bot.delete_message(
+            chat_id=query.message.chat.id,
+            message_id=query.message.message_id,
+        )
+
+        await query.message.reply_to_message.reply(
+            text='Payconiq opties:',
+            reply_markup=get_payconiq_keyboard()
+        )
+
+    else:
+        await bot.edit_message_text(
+            'Payconiq opties:',
+            query.message.chat.id,
+            query.message.message_id,
+            reply_markup=get_payconiq_keyboard()
+        )
 
 
 @dp.callback_query_handler(rvb_cd.filter(action=['payconiq_qr']))
@@ -148,9 +167,14 @@ async def financial_callback(query: types.CallbackQuery, callback_data: typing.D
 
     qr = InputFile(path_or_bytesio=PAYCONIQ_QR)
 
-    await bot.send_photo(
+    await bot.delete_message(
+        chat_id=query.message.chat.id,
+        message_id=query.message.message_id,
+    )
+
+    await query.message.reply_to_message.reply_photo(
         photo=qr,
-        chat_id=query.message.chat.id
+        reply_markup=get_payconiq_totals_keyboard()
     )
 
 
@@ -255,7 +279,7 @@ async def sumup_totals_callback(query: types.CallbackQuery, callback_data: typin
 *Totaal sinds begin van de maand:*\n€{transactions_since_start_of_month["revenue"]}\n-> {transactions_since_start_of_month["transaction_count"]} transacties\n\n
     '''
 
-    await bot.edit_message_text(text, query.message.chat.id, query.message.message_id, parse_mode=ParseMode.MARKDOWN,reply_markup=get_sumup_totals_keyboard())
+    await bot.edit_message_text(text, query.message.chat.id, query.message.message_id, parse_mode=ParseMode.MARKDOWN, reply_markup=get_sumup_totals_keyboard())
 
 
 @dp.callback_query_handler(rvb_cd.filter(action=['boodschappen_keyboard']))
@@ -263,12 +287,26 @@ async def financial_callback(query: types.CallbackQuery, callback_data: typing.D
 
     await query.answer()
 
-    await bot.edit_message_text(
-        'Boodschappen opties:',
-        query.message.chat.id,
-        query.message.message_id,
-        reply_markup=get_boodschappen_keyboard()
-    )
+    if 'photo' in query.message:
+
+        await bot.delete_message(
+            chat_id=query.message.chat.id,
+            message_id=query.message.message_id,
+        )
+
+        await query.message.reply_to_message.reply(
+            text='Boodschappen opties',
+            reply_markup=get_boodschappen_keyboard()
+        )
+
+    else:
+
+        await bot.edit_message_text(
+            'Boodschappen opties:',
+            query.message.chat.id,
+            query.message.message_id,
+            reply_markup=get_boodschappen_keyboard()
+        )
 
 
 @dp.callback_query_handler(rvb_cd.filter(action=['colruyt_card']))
@@ -278,9 +316,14 @@ async def colruyt_card_callback(query: types.CallbackQuery, callback_data: typin
 
     card = InputFile(path_or_bytesio=COLRUYT_CARD)
 
-    await bot.send_photo(
+    await bot.delete_message(
+        chat_id=query.message.chat.id,
+        message_id=query.message.message_id,
+    )
+
+    await query.message.reply_to_message.reply_photo(
         photo=card,
-        chat_id=query.message.chat.id
+        reply_markup=get_colruyt_card_keyboard()
     )
 
 
