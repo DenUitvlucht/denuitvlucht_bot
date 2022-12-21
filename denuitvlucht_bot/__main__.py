@@ -116,6 +116,21 @@ async def general_info_callback(query: types.CallbackQuery, callback_data: typin
         reply_markup=get_rvb_list_keyboard_alt()
     )
 
+@dp.callback_query_handler(general_cd.filter(action=['close']))
+async def general_info_callback(query: types.CallbackQuery, callback_data: typing.Dict[str, str]):
+
+    await query.answer()
+
+    await bot.delete_message(
+            chat_id=query.message.chat.id,
+            message_id=query.message.message_id,
+        )
+
+    await bot.delete_message(
+            chat_id=query.message.chat.id,
+            message_id=query.message.reply_to_message.message_id,
+        )
+
 
 @dp.callback_query_handler(rvb_cd.filter(action=['financial_keyboard']))
 async def financial_callback(query: types.CallbackQuery, callback_data: typing.Dict[str, str]):
