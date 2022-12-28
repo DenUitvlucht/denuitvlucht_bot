@@ -23,6 +23,7 @@ def get_brouwer_keyboard():  # Brouwer keyboard with option(s)
             '🖊️ Bestelling aanpassen/toevoegen', callback_data=item_cd.new(
                 action='brouwer_edit_current_order_category', name='', amount='', category='')),
     ).row(types.InlineKeyboardButton(
+        '📷 Drankkot bekijken', callback_data=brouwer_cd.new(action='show_drankkot'))).row(types.InlineKeyboardButton(
         '⬅️ Terug', callback_data=brouwer_cd.new(action='denuitvlucht')))
 
 
@@ -87,3 +88,6 @@ def get_brouwer_item_keyboard_edit(amount, name, category):
 
     ).row(types.InlineKeyboardButton('⬅️ Terug en opslaan', callback_data=item_cd.new(
         action=f'edit_category', name=name, amount=amount, category=category)))
+
+def get_snapshot_keyboard(): 
+    return types.InlineKeyboardMarkup().row(types.InlineKeyboardButton('⬅️ Terug', callback_data=brouwer_cd.new(action='brouwer_keyboard')))

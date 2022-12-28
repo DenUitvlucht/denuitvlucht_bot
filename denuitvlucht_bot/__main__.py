@@ -20,12 +20,15 @@ from payments.sumup import sumup_auth, get_access_token, get_refresh_token, get_
 
 from data.json_helper import read_from_json, write_to_json
 
+from data.ffmpeg_helper import get_drankkot_snapshot
+
 from bot.keyboards.general.general_keyboards import get_intro_keyboard
 
 from bot.keyboards.brouwer.brouwer_keyboards import get_brouwer_keyboard
 from bot.keyboards.brouwer.brouwer_keyboards import get_brouwer_category_keyboard
 from bot.keyboards.brouwer.brouwer_keyboards import get_brouwer_category_keyboard_edit
 from bot.keyboards.brouwer.brouwer_keyboards import get_brouwer_item_keyboard_edit
+from bot.keyboards.brouwer.brouwer_keyboards import get_snapshot_keyboard
 
 from bot.keyboards.shifts.shifts_keyboards import get_wc_keyboard
 
@@ -56,6 +59,9 @@ load_dotenv()
 API_TOKEN = os.getenv('API_TOKEN')
 BESTUUR_IDS = os.getenv('BESTUUR_IDS').split(',')
 CHAT_ID = os.getenv('CHAT_ID').split(',')
+CAM_USER = os.getenv('CAM_USER')
+CAM_PASSWORD = os.getenv('CAM_PASSWORD')
+CAM_IPV4 = os.getenv('CAM_IPV4')
 
 PAYCONIQ_QR = os.path.join(os.getcwd(), 'denuitvlucht_bot', 'data', 'qr.jpg',)
 COLRUYT_CARD = os.path.join(
@@ -116,20 +122,21 @@ async def general_info_callback(query: types.CallbackQuery, callback_data: typin
         reply_markup=get_rvb_list_keyboard_alt()
     )
 
+
 @dp.callback_query_handler(general_cd.filter(action=['close']))
 async def general_info_callback(query: types.CallbackQuery, callback_data: typing.Dict[str, str]):
 
     await query.answer()
 
     await bot.delete_message(
-            chat_id=query.message.chat.id,
-            message_id=query.message.message_id,
-        )
+        chat_id=query.message.chat.id,
+        message_id=query.message.message_id,
+    )
 
     await bot.delete_message(
-            chat_id=query.message.chat.id,
-            message_id=query.message.reply_to_message.message_id,
-        )
+        chat_id=query.message.chat.id,
+        message_id=query.message.reply_to_message.message_id,
+    )
 
 
 @dp.callback_query_handler(rvb_cd.filter(action=['financial_keyboard']))
@@ -445,15 +452,63 @@ async def brouwer_callback(query: types.CallbackQuery, callback_data: typing.Dic
                 bakken_count += int(best['amount'])
 
     text = 'Dag brouwer,\n\n ⚠️ Momenteel staat er geen bestelling klaar.\n\n' if bakken_count == 0 else 'Dag brouwer,\n\n⚠️ Het aantal bakken van je bestelling ligt nog onder de 15! ⚠️\n\n' if bakken_count < 15 else 'Dag brouwer,\n\ndit is je huidige bestelling:\n\n'
-    #text = 'Dag brouwer, dit is je huidige bestelling:\n\n' if bakken_count > 0 else 'Dag brouwer, momenteel staat er geen bestelling klaar.'
+    # text = 'Dag brouwer, dit is je huidige bestelling:\n\n' if bakken_count > 0 else 'Dag brouwer, momenteel staat er geen bestelling klaar.'
 
-    await bot.edit_message_text(
-        f'{text}{"".join(overzicht)}\nDruk op onderstaande knop om de bestelling aan te passen of toe te voegen.',
-        query.message.chat.id,
-        query.message.message_id,
-        reply_markup=get_brouwer_keyboard(),
-        parse_mode=ParseMode.MARKDOWN
+    if 'photo' in query.message:
+
+        await bot.delete_message(
+            chat_id=query.message.chat.id,
+            message_id=query.message.message_id,
+        )
+
+        await query.message.reply_to_message.reply(
+            f'{text}{"".join(overzicht)}\nDruk op onderstaande knop om de bestelling aan te passen of toe te voegen.',
+            reply_markup=get_brouwer_keyboard(),
+            parse_mode=ParseMode.MARKDOWN
+        )
+
+    else:
+
+        await bot.edit_message_text(
+            f'{text}{"".join(overzicht)}\nDruk op onderstaande knop om de bestelling aan te passen of toe te voegen.',
+            query.message.chat.id,
+            query.message.message_id,
+            reply_markup=get_brouwer_keyboard(),
+            parse_mode=ParseMode.MARKDOWN
+        )
+
+
+@dp.callback_query_handler(brouwer_cd.filter(action=['show_drankkot']))
+async def show_drankkot_callback(query: types.CallbackQuery, callback_data: typing.Dict[str, str]):
+
+    await query.answer()
+
+    await bot.delete_message(
+        chat_id=query.message.chat.id,
+        message_id=query.message.message_id,
     )
+
+    r = await query.message.reply_to_message.reply(
+        'Even geduld...\nEr wordt een foto genomen van het drankkot.\nDit kan enkele seconden duren!'
+    )
+
+    snapshot_location = get_drankkot_snapshot(
+        ipv4=CAM_IPV4,
+        username=CAM_USER,
+        password=CAM_PASSWORD
+    )
+
+    snapshot = InputFile(path_or_bytesio=snapshot_location)
+
+    await query.message.reply_to_message.reply_photo(
+        photo=snapshot,
+        reply_markup=get_snapshot_keyboard()
+    )
+
+    await bot.delete_message(chat_id=r['chat']['id'], message_id=r['message_id'])
+
+    os.remove(snapshot_location)
+
 
 # RVB LIST
 
@@ -707,7 +762,7 @@ async def brouwer_edit_bestelling_callback(query: types.CallbackQuery, callback_
     prices = f'ℹ️ *Informatie:*\nAankoopprijs excl. BTW: `€{price_excl_btw}`\nAankoopprijs incl. BTW: `€{price_incl_btw}`\nLeeggoed: `€{return_amount}`\nTotale aankoopprijs (incl. + leeggoed): `€{unit_price}`\n\n'
 
     type = 'bak(ken)' if 'Liter' not in callback_data['name'] else 'vat(en)'
-    #prices = f'Prijs excl. BTW: `{callback_data["price_excl_btw"]}`\nPrijs incl. BTW `{callback_data["price_incl_btw"]}`'
+    # prices = f'Prijs excl. BTW: `{callback_data["price_excl_btw"]}`\nPrijs incl. BTW `{callback_data["price_incl_btw"]}`'
 
     await bot.edit_message_text(f"{prices}Momenteel staan er *{callback_data['amount']}* {type} *{callback_data['name']}* in de bestelling",
                                 query.message.chat.id,
