@@ -4,6 +4,7 @@ Telegram Bot that can perform various 'bestuurstaken'.
 
 - Automatic brewery order system.
     - Bot sends notifications in chat for order placement and delivery.
+    - View a snapshot of 'het drankkot' to check the inventory
 - Add additional points to a list.
 - Check your cleaning shift.
 - Payconiq integration.
@@ -12,8 +13,9 @@ Telegram Bot that can perform various 'bestuurstaken'.
 - Sends weekly polls to bar staff.
 - Request general information.
     - E-mail, website, enterprise number and bank account number.
+    - Colruyt card
 
-![IMG_20221215_164309](https://user-images.githubusercontent.com/104348706/207904279-8c3f87dc-4941-4877-9140-3ce9d31dce5c.jpg)
+![IMG_20221215_164309](https://user-images.githubusercontent.com/104348706/209989834-90de9993-55c7-44d1-8c3a-4a9282ae7493.png)
 
 
 
