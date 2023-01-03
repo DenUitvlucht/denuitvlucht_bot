@@ -150,6 +150,7 @@ token.json
 rvb_puntjes.json
 aanbod.json
 wc_shift.json
+boodschappen.json
 
 # End of https://www.toptal.com/developers/gitignore/api/python
 
