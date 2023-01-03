@@ -44,7 +44,8 @@ from bot.keyboards.financial.financial_keyboards import get_sumup_totals_keyboar
 
 from bot.keyboards.boodschappen.boodschappen_keyboards import get_boodschappen_keyboard
 from bot.keyboards.boodschappen.boodschappen_keyboards import get_colruyt_card_keyboard
-
+from bot.keyboards.boodschappen.boodschappen_keyboards import get_wipe_boodschappen_list_confirmation_keyboard
+from bot.keyboards.boodschappen.boodschappen_keyboards import get_boodschappen_list_keyboard
 
 # Define paths
 AANBOD_JSON = os.path.join(
@@ -53,6 +54,8 @@ RVB_JSON = os.path.join(
     os.getcwd(), 'denuitvlucht_bot', 'data', 'rvb_puntjes.json')
 WC_JSON = os.path.join(
     os.getcwd(), 'denuitvlucht_bot', 'data', 'wc_shift.json')
+BOODSCHAPPEN_JSON = os.path.join(
+    os.getcwd(), 'denuitvlucht_bot', 'data', 'boodschappen.json')
 
 # Load API TOKEN
 load_dotenv()
@@ -83,11 +86,16 @@ rvb_del_cd = CallbackData('vote', 'action', 'position')
 wc_cd = CallbackData('vote', 'action')
 financial_cd = CallbackData('vote', 'action')
 
-# Handlers
+
+''' 
+------------------------------------------------------------------------------- GENERAL -------------------------------------------------------------------------------
+'''
+
+# SumUp Authorization
 
 
 @dp.message_handler(commands=['start'])
-async def handler(message: types.Message):
+async def sumup_authorization_handler(message: types.Message):
 
     args = message.get_args()
     if args != '' and str(message.from_id) in BESTUUR_IDS:
@@ -97,7 +105,8 @@ async def handler(message: types.Message):
         await message.answer(text=f'Dag bestuurslid. *De SumUp authenticatie is voltooid!*\nJullie kunnen vanaf nu de transactie historiek opvragen via de bot.', parse_mode=ParseMode.MARKDOWN,)
 
 
-@dp.message_handler(commands=['denuitvlucht'])  # Start handler
+# Start command handler
+@dp.message_handler(commands=['denuitvlucht'])
 async def cmd_start(message: types.Message):
 
     if str(message.from_id) in BESTUUR_IDS:
@@ -109,13 +118,14 @@ async def cmd_start(message: types.Message):
         await message.reply(f'Sorry deze bot kan enkel gebruikt worden door een toegelaten bestuurslid.')
 
 
+# General information callback handler
 @dp.callback_query_handler(rvb_cd.filter(action=['general_info']))
 async def general_info_callback(query: types.CallbackQuery, callback_data: typing.Dict[str, str]):
 
     await query.answer()
 
     await bot.edit_message_text(
-        f'📧 E-mail:\nbestuur@denuitvlucht.com\n\n🌐 Website:\ndenuitvlucht.com\n\n🗄️ Ondernemingsnummer:\n`0864.384.420`\n\n💳 Rekeningnummer:\n`BE92 7380 1090 2923`',
+        f'📧 E-mail:\nbestuur@denuitvlucht.com\n\n🌐 Website:\ndenuitvlucht.com\n\n🗄️ Ondernemingsnummer:\n`0864.384.420`\n\n💳 Rekeningnummer:\n`BE92 7380 1090 2923`\n\n',
         query.message.chat.id,
         query.message.message_id,
         parse_mode=ParseMode.MARKDOWN,
@@ -123,8 +133,9 @@ async def general_info_callback(query: types.CallbackQuery, callback_data: typin
     )
 
 
+# Close callback handler
 @dp.callback_query_handler(general_cd.filter(action=['close']))
-async def general_info_callback(query: types.CallbackQuery, callback_data: typing.Dict[str, str]):
+async def close_callback(query: types.CallbackQuery, callback_data: typing.Dict[str, str]):
 
     await query.answer()
 
@@ -139,284 +150,7 @@ async def general_info_callback(query: types.CallbackQuery, callback_data: typin
     )
 
 
-@dp.callback_query_handler(rvb_cd.filter(action=['financial_keyboard']))
-async def financial_callback(query: types.CallbackQuery, callback_data: typing.Dict[str, str]):
-
-    await query.answer()
-
-    await bot.edit_message_text(
-        'Dag bestuurslid, dit zijn jouw opties:',
-        query.message.chat.id,
-        query.message.message_id,
-        reply_markup=get_financial_keyboard()
-    )
-
-
-@dp.callback_query_handler(rvb_cd.filter(action=['payconiq_keyboard']))
-async def financial_callback(query: types.CallbackQuery, callback_data: typing.Dict[str, str]):
-
-    await query.answer()
-
-    with open('test.json', 'w') as f:
-        f.write(str(query))
-        f.close()
-
-    if 'photo' in query.message:
-
-        await bot.delete_message(
-            chat_id=query.message.chat.id,
-            message_id=query.message.message_id,
-        )
-
-        await query.message.reply_to_message.reply(
-            text='Payconiq opties:',
-            reply_markup=get_payconiq_keyboard()
-        )
-
-    else:
-        await bot.edit_message_text(
-            'Payconiq opties:',
-            query.message.chat.id,
-            query.message.message_id,
-            reply_markup=get_payconiq_keyboard()
-        )
-
-
-@dp.callback_query_handler(rvb_cd.filter(action=['payconiq_qr']))
-async def financial_callback(query: types.CallbackQuery, callback_data: typing.Dict[str, str]):
-
-    await query.answer()
-
-    qr = InputFile(path_or_bytesio=PAYCONIQ_QR)
-
-    await bot.delete_message(
-        chat_id=query.message.chat.id,
-        message_id=query.message.message_id,
-    )
-
-    await query.message.reply_to_message.reply_photo(
-        photo=qr,
-        reply_markup=get_payconiq_totals_keyboard()
-    )
-
-
-@dp.callback_query_handler(rvb_cd.filter(action=['payconiq_totals']))
-async def payconiq_callback(query: types.CallbackQuery, callback_data: typing.Dict[str, str]):
-
-    await query.answer()
-
-    data = payconiq_auth()
-
-    ids = get_payment_profile_ids(
-        data['session'],
-    )
-
-    sticker_totals = get_totals_from_payment_profile_id(
-        ids['session'],
-        payment_profile_id=ids['payment_profile_id_sticker']
-    )
-
-    sticker_totals_text = '\n\n'.join(
-        [f"{item['intervalType']}: *€{str(float(item['totals']['totalAmount']) / 100).replace('.', ',')}*\n-> {item['totals']['transactionCount']} transactie(s)" for item in sticker_totals])
-
-    app_to_app_totals = get_totals_from_payment_profile_id(
-        SESSION=ids['session'],
-        payment_profile_id=ids['payment_profile_id_app_to_app']
-    )
-
-    app_to_app_totals_text = '\n\n'.join(
-        [f"{item['intervalType']}: *€{str(float(item['totals']['totalAmount']) / 100).replace('.', ',')}*\n-> {item['totals']['transactionCount']} transactie(s)" for item in app_to_app_totals])
-
-    await bot.edit_message_text(
-        f'Dit is jullie Payconiq-overzicht:\n\nSticker:\n\n{sticker_totals_text}\n\nOnline:\n\n{app_to_app_totals_text}',
-        query.message.chat.id,
-        query.message.message_id,
-        parse_mode=ParseMode.MARKDOWN,
-        reply_markup=get_payconiq_totals_keyboard()
-    )
-
-
-@dp.callback_query_handler(rvb_cd.filter(action=['sumup_keyboard']))
-async def sumup_callback(query: types.CallbackQuery, callback_data: typing.Dict[str, str]):
-
-    await query.answer()
-
-    await bot.edit_message_text(
-        'SumUp opties:',
-        query.message.chat.id,
-        query.message.message_id,
-        reply_markup=get_sumup_keyboard()
-    )
-
-
-@dp.callback_query_handler(rvb_cd.filter(action=['sumup_auth']))
-async def sumup_auth_callback(query: types.CallbackQuery, callback_data: typing.Dict[str, str]):
-
-    await query.answer()
-
-    keyboard = InlineKeyboardMarkup().add(
-        types.InlineKeyboardButton('🔑 Login', url=sumup_auth())).add(
-        types.InlineKeyboardButton('⬅️ Terug', callback_data=financial_cd.new(action='sumup_keyboard')))
-
-    await bot.edit_message_text('*SumUp Authenticatie*\n\nJe zal doorgestuurd worden naar het OAuth2-portaal van Den Uitvlucht vzw', query.message.chat.id, query.message.message_id, reply_markup=keyboard, parse_mode=ParseMode.MARKDOWN,)
-
-
-@dp.callback_query_handler(rvb_cd.filter(action=['sumup_totals']))
-async def sumup_totals_callback(query: types.CallbackQuery, callback_data: typing.Dict[str, str]):
-
-    await query.answer()
-
-    # Dates
-    today = datetime.datetime.today()
-    yesterday = (datetime.datetime.today() -
-                 datetime.timedelta(days=1)).strftime('%Y-%m-%d')
-    start_of_week = (today - datetime.timedelta(
-        days=today.weekday())).strftime('%Y-%m-%d')
-
-    start_of_month = (today - datetime.timedelta(
-        days=today.day-1)).strftime('%Y-%m-%d')
-
-    access_token = get_access_token()
-
-    transactions_since_yesterday = get_sumup_transactions(
-        access_token=access_token,
-        start_date=yesterday,
-        end_date=today.strftime('%Y-%m-%d')
-    )
-
-    transactions_since_start_of_week = get_sumup_transactions(
-        access_token=access_token,
-        start_date=start_of_week,
-        end_date=today.strftime('%Y-%m-%d')
-    )
-
-    transactions_since_start_of_month = get_sumup_transactions(
-        access_token=access_token,
-        start_date=start_of_month,
-        end_date=today.strftime('%Y-%m-%d')
-    )
-
-    text = f'''*Totaal sinds gisteren:*\n€{transactions_since_yesterday["revenue"]}\n-> {transactions_since_yesterday["transaction_count"]} transacties\n\n
-*Totaal sinds begin van de week:*\n€{transactions_since_start_of_week["revenue"]}\n-> {transactions_since_start_of_week["transaction_count"]} transacties\n\n
-*Totaal sinds begin van de maand:*\n€{transactions_since_start_of_month["revenue"]}\n-> {transactions_since_start_of_month["transaction_count"]} transacties\n\n
-    '''
-
-    await bot.edit_message_text(text, query.message.chat.id, query.message.message_id, parse_mode=ParseMode.MARKDOWN, reply_markup=get_sumup_totals_keyboard())
-
-
-@dp.callback_query_handler(rvb_cd.filter(action=['boodschappen_keyboard']))
-async def financial_callback(query: types.CallbackQuery, callback_data: typing.Dict[str, str]):
-
-    await query.answer()
-
-    if 'photo' in query.message:
-
-        await bot.delete_message(
-            chat_id=query.message.chat.id,
-            message_id=query.message.message_id,
-        )
-
-        await query.message.reply_to_message.reply(
-            text='Boodschappen opties',
-            reply_markup=get_boodschappen_keyboard()
-        )
-
-    else:
-
-        await bot.edit_message_text(
-            'Boodschappen opties:',
-            query.message.chat.id,
-            query.message.message_id,
-            reply_markup=get_boodschappen_keyboard()
-        )
-
-
-@dp.callback_query_handler(rvb_cd.filter(action=['colruyt_card']))
-async def colruyt_card_callback(query: types.CallbackQuery, callback_data: typing.Dict[str, str]):
-
-    await query.answer()
-
-    card = InputFile(path_or_bytesio=COLRUYT_CARD)
-
-    await bot.delete_message(
-        chat_id=query.message.chat.id,
-        message_id=query.message.message_id,
-    )
-
-    await query.message.reply_to_message.reply_photo(
-        photo=card,
-        reply_markup=get_colruyt_card_keyboard()
-    )
-
-
-@dp.message_handler(commands=['add'])
-async def cmd_add(message: types.Message):
-
-    if str(message.from_id) in BESTUUR_IDS:
-
-        args = message.text.split(' ')
-
-        if len(args) == 1:
-
-            await message.reply(f'⚠️ *Vergeet je puntje niet te vermelden!*', parse_mode=ParseMode.MARKDOWN)
-
-        elif len(args) > 1:
-
-            puntje = ' '.join(args[1:])
-            await message.reply(f'✅ *Puntje: "{puntje}" is toegevoegd!*', parse_mode=ParseMode.MARKDOWN)
-
-            rvb_list = read_from_json(path=RVB_JSON)
-            rvb_list['puntjes'].append({
-                'subject': puntje,
-                'date': str(datetime.datetime.today().strftime("%d/%m/%Y")),
-                'who': f'{message.from_user.first_name}'
-            })
-
-            write_to_json(path=RVB_JSON, data=rvb_list)
-    else:
-
-        await message.reply(f'Sorry deze bot kan enkel gebruikt worden door een toegelaten bestuurslid.')
-
-# Wipe handler
-
-
-@dp.callback_query_handler(rvb_cd.filter(action=['wipe_rvb_list']))
-async def wipe_rvb_list_callback(query: types.CallbackQuery, callback_data: typing.Dict[str, str]):
-
-    await query.answer()
-
-    # CLEAR JSON
-
-    rvb_list = read_from_json(path=RVB_JSON)
-
-    rvb_list['puntjes'] = []
-
-    write_to_json(path=RVB_JSON, data=rvb_list)
-
-    await bot.edit_message_text(
-        'De RVB-puntjes zijn gewist!',
-        query.message.chat.id,
-        query.message.message_id,
-        reply_markup=get_rvb_list_keyboard_alt()
-    )
-
-# Wipe handler
-
-
-@dp.callback_query_handler(rvb_cd.filter(action=['wipe_rvb_list_confirmation']))
-async def intro_callback(query: types.CallbackQuery, callback_data: typing.Dict[str, str]):
-
-    await query.answer()
-
-    await bot.edit_message_text(
-        'Ben je zeker dat je de RVB-puntjes wil wissen?',
-        query.message.chat.id,
-        query.message.message_id,
-        reply_markup=get_wipe_rvb_list_confirmation_keyboard()
-    )
-
-
-# Main options for bestuur
+# Main options callback handler
 @dp.callback_query_handler(brouwer_cd.filter(action=['denuitvlucht']))
 async def intro_callback(query: types.CallbackQuery, callback_data: typing.Dict[str, str]):
 
@@ -430,7 +164,13 @@ async def intro_callback(query: types.CallbackQuery, callback_data: typing.Dict[
     )
 
 
-# Brouwer option(s)
+''' 
+------------------------------------------------------------------------------- BROUWER -------------------------------------------------------------------------------
+'''
+
+# Brouwer callback handler
+
+
 @dp.callback_query_handler(brouwer_cd.filter(action=['brouwer_keyboard']))
 async def brouwer_callback(query: types.CallbackQuery, callback_data: typing.Dict[str, str]):
 
@@ -478,6 +218,7 @@ async def brouwer_callback(query: types.CallbackQuery, callback_data: typing.Dic
         )
 
 
+# Show drankkot callback handler
 @dp.callback_query_handler(brouwer_cd.filter(action=['show_drankkot']))
 async def show_drankkot_callback(query: types.CallbackQuery, callback_data: typing.Dict[str, str]):
 
@@ -510,211 +251,7 @@ async def show_drankkot_callback(query: types.CallbackQuery, callback_data: typi
     os.remove(snapshot_location)
 
 
-# RVB LIST
-
-
-@dp.callback_query_handler(rvb_cd.filter(action=['rvb_list']))
-async def rvb_list_callback(query: types.CallbackQuery):
-
-    await query.answer()
-
-    rvb_list = read_from_json(path=RVB_JSON)
-
-    overzicht = []
-    for item in rvb_list['puntjes']:
-
-        who = item['who'] if 'who' in item else 'onbekend'
-        overzicht.append(
-            f'*- {item["subject"]}* | Toegevoegd op *{item["date"]}* door *{who}* \n\n')
-
-    if len(overzicht) > 0:
-
-        await bot.edit_message_text(
-            f'Dit zijn de RVB-puntjes van deze week:\n\n{"".join(overzicht)}',
-            query.message.chat.id,
-            query.message.message_id,
-            reply_markup=get_rvb_list_keyboard(),
-            parse_mode=ParseMode.MARKDOWN
-        )
-
-    else:
-
-        await bot.edit_message_text(
-            f'Er zijn nog geen RVB-puntjes toegevoegd.',
-            query.message.chat.id,
-            query.message.message_id,
-            reply_markup=get_rvb_list_keyboard_alt()
-        )
-
-
-@dp.callback_query_handler(rvb_cd.filter(action=['rvb_list_edit']))
-async def rvb_list_edit_callback(query: types.CallbackQuery):
-
-    await query.answer()
-
-    rvb_list = read_from_json(path=RVB_JSON)
-
-    keyboard = InlineKeyboardMarkup()
-    count = 0
-    for item in rvb_list['puntjes']:
-
-        index = rvb_list['puntjes'].index(item)
-
-        keyboard.row(types.InlineKeyboardButton(
-            text=f"{item['subject']}", callback_data=rvb_del_cd.new(action=f'rvb_delete_item', position=index)))
-        count += 1
-
-    if count > 0:
-
-        keyboard.row(types.InlineKeyboardButton(
-            '⬅️ Terug', callback_data=rvb_cd.new(action='rvb_list')))
-
-        await bot.edit_message_text(
-            f'Klik op een punje om het uit de lijst te verwijderen.\n\n',
-            query.message.chat.id,
-            query.message.message_id,
-            reply_markup=keyboard,
-            parse_mode=ParseMode.MARKDOWN
-        )
-
-    else:
-
-        keyboard = InlineKeyboardMarkup()
-        keyboard.row(types.InlineKeyboardButton(
-            '⬅️ Terug', callback_data=rvb_cd.new(action='rvb_list')))
-
-        await bot.edit_message_text(
-            f'Er zijn geen RVB-puntjes meer op te verwijderen.',
-            query.message.chat.id,
-            query.message.message_id,
-            reply_markup=keyboard
-        )
-
-
-@dp.callback_query_handler(rvb_del_cd.filter(action=['rvb_delete_item']))
-async def rvb_list_callback(query: types.CallbackQuery):
-
-    await query.answer()
-
-    item_position = int(query.data.split('rvb_delete_item:')[1])
-
-    rvb_list = read_from_json(path=RVB_JSON)
-
-    item_subject = rvb_list['puntjes'][item_position]['subject']
-
-    rvb_list['puntjes'].pop(item_position)
-
-    write_to_json(path=RVB_JSON, data=rvb_list)
-
-    keyboard = InlineKeyboardMarkup()
-    keyboard.row(types.InlineKeyboardButton(
-        '⬅️ Terug', callback_data=rvb_cd.new(action='rvb_list_edit')))
-
-    await bot.edit_message_text(
-        f'Puntje *{item_subject}* is verwijderd!',
-        query.message.chat.id,
-        query.message.message_id,
-        reply_markup=keyboard,
-        parse_mode=ParseMode.MARKDOWN
-    )
-
-
-@dp.message_handler(commands=['list'])
-async def rvb_list_command(message: types.Message):
-
-    if str(message.from_id) in BESTUUR_IDS:
-
-        rvb_list = read_from_json(path=RVB_JSON)
-
-        overzicht = []
-        for item in rvb_list['puntjes']:
-
-            who = item['who'] if 'who' in item else 'onbekend'
-            overzicht.append(
-                f'*- {item["subject"]}* | Toegevoegd op *{item["date"]}* door *{who}* \n\n')
-
-        if len(overzicht) > 0:
-
-            keyboard = InlineKeyboardMarkup().row(types.InlineKeyboardButton('🖊️ Individuele items verwijderen', callback_data=rvb_cd.new(action='rvb_list_edit'))
-                                                  ).row(types.InlineKeyboardButton('🗑️ Volledige lijst wissen', callback_data=rvb_cd.new(action='wipe_rvb_list_confirmation')))
-
-            await message.reply(
-                f'Dit zijn de RVB-puntjes van deze week:\n\n{"".join(overzicht)}',
-                parse_mode=ParseMode.MARKDOWN,
-                reply_markup=keyboard
-            )
-
-        else:
-
-            await message.reply(
-                f'Er zijn nog geen RVB-puntjes toegevoegd.',
-            )
-
-    else:
-
-        await message.reply(f'Sorry deze bot kan enkel gebruikt worden door een toegelaten bestuurslid.')
-
-# WC SHIFT
-
-
-@dp.callback_query_handler(wc_cd.filter(action=['wc_shift']))
-async def wc_shift_callback(query: types.CallbackQuery):
-
-    await query.answer()
-
-    shifts = read_from_json(path=WC_JSON)
-
-    # search for person with has_to_clean == true
-    for shift in shifts['shifts']:
-
-        if shift['has_to_clean'] == True:
-
-            has_to_clean = shift['name']
-
-    await bot.edit_message_text(
-        f'🚽 *{has_to_clean}* moet deze week de WC kuisen en de was doen. Veel kuisplezier!',
-        query.message.chat.id,
-        query.message.message_id,
-        reply_markup=get_wc_keyboard(),
-        parse_mode=ParseMode.MARKDOWN
-    )
-
-# WC SHIFT NEXT
-
-
-@dp.callback_query_handler(wc_cd.filter(action='next_wc_shift'))
-async def next_wc_shift_handler(query: types.CallbackQuery, callback_data: dict):
-
-    shifts = read_from_json(path=WC_JSON)
-
-    for index, shift in enumerate(shifts['shifts']):
-
-        if shift['has_to_clean'] == True:
-
-            shift['has_to_clean'] = False
-
-            if shifts['shifts'].index(shift) < len(shifts['shifts']) - 1:
-
-                shifts['shifts'][index+1]['has_to_clean'] = True
-                has_to_clean = shifts['shifts'][index+1]['name']
-            else:
-                shifts['shifts'][0]['has_to_clean'] = True
-                has_to_clean = shifts['shifts'][0]['name']
-
-            break
-
-    write_to_json(path=WC_JSON, data=shifts)
-
-    await bot.edit_message_text(f'🚽 *{has_to_clean}* moet deze week de WC kuisen. Veel kuisplezier!',
-                                query.message.chat.id,
-                                query.message.message_id,
-                                reply_markup=get_wc_keyboard(),
-                                parse_mode=ParseMode.MARKDOWN
-                                )
-
-# Categories
-
-
+# Brouwer edit category callback handler
 @dp.callback_query_handler(item_cd.filter(action=['brouwer_edit_current_order_category']))
 async def brouwer_category_callback(query: types.CallbackQuery, callback_data: typing.Dict[str, str]):
 
@@ -731,7 +268,7 @@ async def brouwer_category_callback(query: types.CallbackQuery, callback_data: t
     )
 
 
-# All items and their amounts
+# Brouwer edit category callback handler
 @dp.callback_query_handler(item_cd.filter(action=['edit_category']))
 async def brouwer_edit_bestelling_callback(query: types.CallbackQuery, callback_data: typing.Dict[str, str]):
 
@@ -743,6 +280,7 @@ async def brouwer_edit_bestelling_callback(query: types.CallbackQuery, callback_
                                 reply_markup=get_brouwer_category_keyboard_edit(amount=callback_data['amount'], name=callback_data['name'], category=callback_data['category']))
 
 
+# Brouwer edit item callback handler
 @dp.callback_query_handler(item_cd.filter(action='edit_item'))  # Edit item
 async def brouwer_edit_bestelling_callback(query: types.CallbackQuery, callback_data: typing.Dict[str, str]):
 
@@ -802,6 +340,688 @@ async def vote_minus_cb_handler(query: types.CallbackQuery, callback_data: dict)
                                     query.message.chat.id,
                                     query.message.message_id,
                                     reply_markup=get_brouwer_item_keyboard_edit(amount, callback_data['name'], category=category), parse_mode=ParseMode.MARKDOWN)
+
+
+''' 
+------------------------------------------------------------------------------- FINANCIAL -----------------------------------------------------------------------------
+'''
+
+# Financial callback handler
+
+
+@dp.callback_query_handler(rvb_cd.filter(action=['financial_keyboard']))
+async def financial_callback(query: types.CallbackQuery, callback_data: typing.Dict[str, str]):
+
+    await query.answer()
+
+    await bot.edit_message_text(
+        'Dag bestuurslid, dit zijn jouw opties:',
+        query.message.chat.id,
+        query.message.message_id,
+        reply_markup=get_financial_keyboard()
+    )
+
+
+# Payconiq callback handler
+@dp.callback_query_handler(rvb_cd.filter(action=['payconiq_keyboard']))
+async def payconiq_callback(query: types.CallbackQuery, callback_data: typing.Dict[str, str]):
+
+    await query.answer()
+
+    with open('test.json', 'w') as f:
+        f.write(str(query))
+        f.close()
+
+    if 'photo' in query.message:
+
+        await bot.delete_message(
+            chat_id=query.message.chat.id,
+            message_id=query.message.message_id,
+        )
+
+        await query.message.reply_to_message.reply(
+            text='Payconiq opties:',
+            reply_markup=get_payconiq_keyboard()
+        )
+
+    else:
+        await bot.edit_message_text(
+            'Payconiq opties:',
+            query.message.chat.id,
+            query.message.message_id,
+            reply_markup=get_payconiq_keyboard()
+        )
+
+
+# Payconiq QR callback handler
+@dp.callback_query_handler(rvb_cd.filter(action=['payconiq_qr']))
+async def payconiq_qr_callback(query: types.CallbackQuery, callback_data: typing.Dict[str, str]):
+
+    await query.answer()
+
+    qr = InputFile(path_or_bytesio=PAYCONIQ_QR)
+
+    await bot.delete_message(
+        chat_id=query.message.chat.id,
+        message_id=query.message.message_id,
+    )
+
+    await query.message.reply_to_message.reply_photo(
+        photo=qr,
+        reply_markup=get_payconiq_totals_keyboard()
+    )
+
+
+# Payconiq totals callback handler
+@dp.callback_query_handler(rvb_cd.filter(action=['payconiq_totals']))
+async def payconiq_totals_callback(query: types.CallbackQuery, callback_data: typing.Dict[str, str]):
+
+    await query.answer()
+
+    data = payconiq_auth()
+
+    ids = get_payment_profile_ids(
+        data['session'],
+    )
+
+    sticker_totals = get_totals_from_payment_profile_id(
+        ids['session'],
+        payment_profile_id=ids['payment_profile_id_sticker']
+    )
+
+    sticker_totals_text = '\n\n'.join(
+        [f"{item['intervalType']}: *€{str(float(item['totals']['totalAmount']) / 100).replace('.', ',')}*\n-> {item['totals']['transactionCount']} transactie(s)" for item in sticker_totals])
+
+    app_to_app_totals = get_totals_from_payment_profile_id(
+        SESSION=ids['session'],
+        payment_profile_id=ids['payment_profile_id_app_to_app']
+    )
+
+    app_to_app_totals_text = '\n\n'.join(
+        [f"{item['intervalType']}: *€{str(float(item['totals']['totalAmount']) / 100).replace('.', ',')}*\n-> {item['totals']['transactionCount']} transactie(s)" for item in app_to_app_totals])
+
+    await bot.edit_message_text(
+        f'Dit is jullie Payconiq-overzicht:\n\nSticker:\n\n{sticker_totals_text}\n\nOnline:\n\n{app_to_app_totals_text}',
+        query.message.chat.id,
+        query.message.message_id,
+        parse_mode=ParseMode.MARKDOWN,
+        reply_markup=get_payconiq_totals_keyboard()
+    )
+
+
+# SumUp callback handler
+@dp.callback_query_handler(rvb_cd.filter(action=['sumup_keyboard']))
+async def sumup_callback(query: types.CallbackQuery, callback_data: typing.Dict[str, str]):
+
+    await query.answer()
+
+    await bot.edit_message_text(
+        'SumUp opties:',
+        query.message.chat.id,
+        query.message.message_id,
+        reply_markup=get_sumup_keyboard()
+    )
+
+
+# SumUp Authorization callback handler
+@dp.callback_query_handler(rvb_cd.filter(action=['sumup_auth']))
+async def sumup_auth_callback(query: types.CallbackQuery, callback_data: typing.Dict[str, str]):
+
+    await query.answer()
+
+    keyboard = InlineKeyboardMarkup().add(
+        types.InlineKeyboardButton('🔑 Login', url=sumup_auth())).add(
+        types.InlineKeyboardButton('⬅️ Terug', callback_data=financial_cd.new(action='sumup_keyboard')))
+
+    await bot.edit_message_text('*SumUp Authenticatie*\n\nJe zal doorgestuurd worden naar het OAuth2-portaal van Den Uitvlucht vzw', query.message.chat.id, query.message.message_id, reply_markup=keyboard, parse_mode=ParseMode.MARKDOWN,)
+
+
+# SumUp totals calblack handler
+@dp.callback_query_handler(rvb_cd.filter(action=['sumup_totals']))
+async def sumup_totals_callback(query: types.CallbackQuery, callback_data: typing.Dict[str, str]):
+
+    await query.answer()
+
+    # Dates
+    today = datetime.datetime.today()
+    yesterday = (datetime.datetime.today() -
+                 datetime.timedelta(days=1)).strftime('%Y-%m-%d')
+    start_of_week = (today - datetime.timedelta(
+        days=today.weekday())).strftime('%Y-%m-%d')
+
+    start_of_month = (today - datetime.timedelta(
+        days=today.day-1)).strftime('%Y-%m-%d')
+
+    access_token = get_access_token()
+
+    transactions_since_yesterday = get_sumup_transactions(
+        access_token=access_token,
+        start_date=yesterday,
+        end_date=today.strftime('%Y-%m-%d')
+    )
+
+    transactions_since_start_of_week = get_sumup_transactions(
+        access_token=access_token,
+        start_date=start_of_week,
+        end_date=today.strftime('%Y-%m-%d')
+    )
+
+    transactions_since_start_of_month = get_sumup_transactions(
+        access_token=access_token,
+        start_date=start_of_month,
+        end_date=today.strftime('%Y-%m-%d')
+    )
+
+    text = f"""*Totaal sinds gisteren:*\n€{transactions_since_yesterday["revenue"]}\n-> {transactions_since_yesterday["transaction_count"]} transacties\n\n
+*Totaal sinds begin van de week:*\n€{transactions_since_start_of_week["revenue"]}\n-> {transactions_since_start_of_week["transaction_count"]} transacties\n\n
+*Totaal sinds begin van de maand:*\n€{transactions_since_start_of_month["revenue"]}\n-> {transactions_since_start_of_month["transaction_count"]} transacties\n\n
+    """
+
+    await bot.edit_message_text(text, query.message.chat.id, query.message.message_id, parse_mode=ParseMode.MARKDOWN, reply_markup=get_sumup_totals_keyboard())
+
+
+''' 
+------------------------------------------------------------------------------- RVB -----------------------------------------------------------------------------------
+'''
+
+# Add command handler
+
+
+@dp.message_handler(commands=['add'])
+async def cmd_add(message: types.Message):
+
+    if str(message.from_id) in BESTUUR_IDS:
+
+        args = message.text.split(' ')
+
+        if len(args) == 1:
+
+            await message.reply(f'⚠️ *Vergeet je puntje niet te vermelden!*', parse_mode=ParseMode.MARKDOWN)
+
+        elif len(args) > 1:
+
+            puntje = ' '.join(args[1:])
+            await message.reply(f'✅ *Puntje: "{puntje}" is toegevoegd!*', parse_mode=ParseMode.MARKDOWN)
+
+            rvb_list = read_from_json(path=RVB_JSON)
+            rvb_list['puntjes'].append({
+                'subject': puntje,
+                'date': str(datetime.datetime.today().strftime("%d/%m/%Y")),
+                'who': f'{message.from_user.first_name}'
+            })
+
+            write_to_json(path=RVB_JSON, data=rvb_list)
+    else:
+
+        await message.reply(f'Sorry deze bot kan enkel gebruikt worden door een toegelaten bestuurslid.')
+
+
+# Wipe rvb list callback handler
+@dp.callback_query_handler(rvb_cd.filter(action=['wipe_rvb_list']))
+async def wipe_rvb_list_callback(query: types.CallbackQuery, callback_data: typing.Dict[str, str]):
+
+    await query.answer()
+
+    # CLEAR JSON
+
+    rvb_list = read_from_json(path=RVB_JSON)
+
+    rvb_list['puntjes'] = []
+
+    write_to_json(path=RVB_JSON, data=rvb_list)
+
+    await bot.edit_message_text(
+        'De RVB-puntjes zijn gewist!',
+        query.message.chat.id,
+        query.message.message_id,
+        reply_markup=get_rvb_list_keyboard_alt()
+    )
+
+
+# Wipe rvn list confirmation callback handler
+@dp.callback_query_handler(rvb_cd.filter(action=['wipe_rvb_list_confirmation']))
+async def wipe_rvb_list_confirmation_callback(query: types.CallbackQuery, callback_data: typing.Dict[str, str]):
+
+    await query.answer()
+
+    await bot.edit_message_text(
+        'Ben je zeker dat je de RVB-puntjes wil wissen?',
+        query.message.chat.id,
+        query.message.message_id,
+        reply_markup=get_wipe_rvb_list_confirmation_keyboard()
+    )
+
+
+# RVB list callback handler
+@dp.callback_query_handler(rvb_cd.filter(action=['rvb_list']))
+async def rvb_list_callback(query: types.CallbackQuery):
+
+    await query.answer()
+
+    rvb_list = read_from_json(path=RVB_JSON)
+
+    overzicht = []
+    for item in rvb_list['puntjes']:
+
+        who = item['who'] if 'who' in item else 'onbekend'
+        overzicht.append(
+            f'*- {item["subject"]}* | Toegevoegd op *{item["date"]}* door *{who}* \n\n')
+
+    if len(overzicht) > 0:
+
+        await bot.edit_message_text(
+            f'Dit zijn de RVB-puntjes van deze week:\n\n{"".join(overzicht)}',
+            query.message.chat.id,
+            query.message.message_id,
+            reply_markup=get_rvb_list_keyboard(),
+            parse_mode=ParseMode.MARKDOWN
+        )
+
+    else:
+
+        await bot.edit_message_text(
+            f'Er zijn nog geen RVB-puntjes toegevoegd.',
+            query.message.chat.id,
+            query.message.message_id,
+            reply_markup=get_rvb_list_keyboard_alt()
+        )
+
+
+# RVB list edit callback handler
+@dp.callback_query_handler(rvb_cd.filter(action=['rvb_list_edit']))
+async def rvb_list_edit_callback(query: types.CallbackQuery):
+
+    await query.answer()
+
+    rvb_list = read_from_json(path=RVB_JSON)
+
+    keyboard = InlineKeyboardMarkup()
+    count = 0
+    for item in rvb_list['puntjes']:
+
+        index = rvb_list['puntjes'].index(item)
+
+        keyboard.row(types.InlineKeyboardButton(
+            text=f"{item['subject']}", callback_data=rvb_del_cd.new(action=f'rvb_delete_item', position=index)))
+        count += 1
+
+    if count > 0:
+
+        keyboard.row(types.InlineKeyboardButton(
+            '⬅️ Terug', callback_data=rvb_cd.new(action='rvb_list')))
+
+        await bot.edit_message_text(
+            f'Klik op een punje om het uit de lijst te verwijderen.\n\n',
+            query.message.chat.id,
+            query.message.message_id,
+            reply_markup=keyboard,
+            parse_mode=ParseMode.MARKDOWN
+        )
+
+    else:
+
+        keyboard = InlineKeyboardMarkup()
+        keyboard.row(types.InlineKeyboardButton(
+            '⬅️ Terug', callback_data=rvb_cd.new(action='rvb_list')))
+
+        await bot.edit_message_text(
+            f'Er zijn geen RVB-puntjes meer om te verwijderen.',
+            query.message.chat.id,
+            query.message.message_id,
+            reply_markup=keyboard
+        )
+
+
+# RVB list edit callback handler
+@dp.callback_query_handler(rvb_del_cd.filter(action=['rvb_delete_item']))
+async def rvb_list_callback(query: types.CallbackQuery):
+
+    await query.answer()
+
+    item_position = int(query.data.split('rvb_delete_item:')[1])
+
+    rvb_list = read_from_json(path=RVB_JSON)
+
+    item_subject = rvb_list['puntjes'][item_position]['subject']
+
+    rvb_list['puntjes'].pop(item_position)
+
+    write_to_json(path=RVB_JSON, data=rvb_list)
+
+    keyboard = InlineKeyboardMarkup()
+    keyboard.row(types.InlineKeyboardButton(
+        '⬅️ Terug', callback_data=rvb_cd.new(action='rvb_list_edit')))
+
+    await bot.edit_message_text(
+        f'Puntje *{item_subject}* is verwijderd!',
+        query.message.chat.id,
+        query.message.message_id,
+        reply_markup=keyboard,
+        parse_mode=ParseMode.MARKDOWN
+    )
+
+
+# List command handler
+@dp.message_handler(commands=['list'])
+async def rvb_list_command(message: types.Message):
+
+    if str(message.from_id) in BESTUUR_IDS:
+
+        rvb_list = read_from_json(path=RVB_JSON)
+
+        overzicht = []
+        for item in rvb_list['puntjes']:
+
+            who = item['who'] if 'who' in item else 'onbekend'
+            overzicht.append(
+                f'*- {item["subject"]}* | Toegevoegd op *{item["date"]}* door *{who}* \n\n')
+
+        if len(overzicht) > 0:
+
+            keyboard = InlineKeyboardMarkup().row(types.InlineKeyboardButton('🖊️ Individuele items verwijderen', callback_data=rvb_cd.new(action='rvb_list_edit'))
+                                                  ).row(types.InlineKeyboardButton('🗑️ Volledige lijst wissen', callback_data=rvb_cd.new(action='wipe_rvb_list_confirmation')))
+
+            await message.reply(
+                f'Dit zijn de RVB-puntjes van deze week:\n\n{"".join(overzicht)}',
+                parse_mode=ParseMode.MARKDOWN,
+                reply_markup=keyboard
+            )
+
+        else:
+
+            await message.reply(
+                f'Er zijn nog geen RVB-puntjes toegevoegd.',
+            )
+
+    else:
+
+        await message.reply(f'Sorry deze bot kan enkel gebruikt worden door een toegelaten bestuurslid.')
+
+
+''' 
+------------------------------------------------------------------------------- BOODSCHAPPEN --------------------------------------------------------------------------
+'''
+
+# Boodschappen callback handler
+
+
+@dp.callback_query_handler(rvb_cd.filter(action=['boodschappen_keyboard']))
+async def financial_callback(query: types.CallbackQuery, callback_data: typing.Dict[str, str]):
+
+    await query.answer()
+
+    if 'photo' in query.message:
+
+        await bot.delete_message(
+            chat_id=query.message.chat.id,
+            message_id=query.message.message_id,
+        )
+
+        await query.message.reply_to_message.reply(
+            text='Boodschappen opties',
+            reply_markup=get_boodschappen_keyboard()
+        )
+
+    else:
+
+        await bot.edit_message_text(
+            'Boodschappen opties:',
+            query.message.chat.id,
+            query.message.message_id,
+            reply_markup=get_boodschappen_keyboard()
+        )
+
+
+# Colruyt card callback handler
+@dp.callback_query_handler(rvb_cd.filter(action=['colruyt_card']))
+async def colruyt_card_callback(query: types.CallbackQuery, callback_data: typing.Dict[str, str]):
+
+    await query.answer()
+
+    card = InputFile(path_or_bytesio=COLRUYT_CARD)
+
+    await bot.delete_message(
+        chat_id=query.message.chat.id,
+        message_id=query.message.message_id,
+    )
+
+    await query.message.reply_to_message.reply_photo(
+        photo=card,
+        reply_markup=get_colruyt_card_keyboard()
+    )
+
+
+# Boodschap command handler
+@dp.message_handler(commands=['boodschap'])
+async def cmd_boodschap(message: types.Message):
+
+    if str(message.from_id) in BESTUUR_IDS:
+
+        args = message.text.split(' ')
+
+        if len(args) == 1:
+
+            await message.reply(f'⚠️ *Vergeet je boodschap niet te vermelden!*', parse_mode=ParseMode.MARKDOWN)
+
+        elif len(args) > 1:
+
+            boodschap = ' '.join(args[1:])
+            await message.reply(f'🛒 *Boodschap: "{boodschap}" is toegevoegd!*', parse_mode=ParseMode.MARKDOWN)
+
+            boodschappen_list = read_from_json(path=BOODSCHAPPEN_JSON)
+            boodschappen_list['boodschappen'].append({
+                'item': boodschap,
+            })
+
+            write_to_json(path=BOODSCHAPPEN_JSON, data=boodschappen_list)
+    else:
+
+        await message.reply(f'Sorry deze bot kan enkel gebruikt worden door een toegelaten bestuurslid.')
+
+
+# Wipe boodschappen list callback handler
+@dp.callback_query_handler(rvb_cd.filter(action=['wipe_boodschappen_list']))
+async def wipe_boodschappen_list_callback(query: types.CallbackQuery, callback_data: typing.Dict[str, str]):
+
+    await query.answer()
+
+    # CLEAR JSON
+
+    boodschappen_list = read_from_json(path=BOODSCHAPPEN_JSON)
+
+    boodschappen_list['boodschappen'] = []
+
+    write_to_json(path=BOODSCHAPPEN_JSON, data=boodschappen_list)
+
+    await bot.edit_message_text(
+        'De boodschappen zijn gewist!',
+        query.message.chat.id,
+        query.message.message_id,
+        reply_markup=get_colruyt_card_keyboard()
+    )
+
+
+# Wipe boodschappen list confirmation callback handler
+@dp.callback_query_handler(rvb_cd.filter(action=['wipe_boodschappen_list_confirmation']))
+async def wipe_rvb_list_confirmation_callback(query: types.CallbackQuery, callback_data: typing.Dict[str, str]):
+
+    await query.answer()
+
+    await bot.edit_message_text(
+        'Ben je zeker dat je de boodschappenlijst wil wissen?',
+        query.message.chat.id,
+        query.message.message_id,
+        reply_markup=get_wipe_boodschappen_list_confirmation_keyboard()
+    )
+
+
+# Boodschappen list callback handler
+@dp.callback_query_handler(rvb_cd.filter(action=['boodschappen_list']))
+async def rvb_list_callback(query: types.CallbackQuery):
+
+    await query.answer()
+
+    boodschappen_list = read_from_json(path=BOODSCHAPPEN_JSON)
+
+    overzicht = []
+    for item in boodschappen_list['boodschappen']:
+
+        who = item['who'] if 'who' in item else 'onbekend'
+        overzicht.append(
+            f'*- {item["item"]}*\n\n')
+
+    if len(overzicht) > 0:
+
+        await bot.edit_message_text(
+            f'Dit is het huidige boodschappenlijstje:\n\n{"".join(overzicht)}',
+            query.message.chat.id,
+            query.message.message_id,
+            reply_markup=get_boodschappen_list_keyboard(),
+            parse_mode=ParseMode.MARKDOWN
+        )
+
+    else:
+
+        await bot.edit_message_text(
+            f'Er staat nog niks op het boodschappenlijstje.',
+            query.message.chat.id,
+            query.message.message_id,
+            reply_markup=get_colruyt_card_keyboard()
+        )
+
+
+# Boodschappen list edit callback handler
+@dp.callback_query_handler(rvb_cd.filter(action=['boodschappen_list_edit']))
+async def boodschappen_list_edit_callback(query: types.CallbackQuery):
+
+    await query.answer()
+
+    boodschappen_list = read_from_json(path=BOODSCHAPPEN_JSON)
+
+    keyboard = InlineKeyboardMarkup()
+    count = 0
+    for item in boodschappen_list['boodschappen']:
+
+        index = boodschappen_list['boodschappen'].index(item)
+
+        keyboard.row(types.InlineKeyboardButton(
+            text=f"{item['item']}", callback_data=rvb_del_cd.new(action=f'boodschappen_delete_item', position=index)))
+        count += 1
+
+    if count > 0:
+
+        keyboard.row(types.InlineKeyboardButton(
+            '⬅️ Terug', callback_data=rvb_cd.new(action='boodschappen_list')))
+
+        await bot.edit_message_text(
+            f'Klik op het item om het uit de lijst te verwijderen.\n\n',
+            query.message.chat.id,
+            query.message.message_id,
+            reply_markup=keyboard,
+            parse_mode=ParseMode.MARKDOWN
+        )
+
+    else:
+
+        keyboard = InlineKeyboardMarkup()
+        keyboard.row(types.InlineKeyboardButton(
+            '⬅️ Terug', callback_data=rvb_cd.new(action='boodschappen_list')))
+
+        await bot.edit_message_text(
+            f'Er zijn geen items meer om te verwijderen.',
+            query.message.chat.id,
+            query.message.message_id,
+            reply_markup=keyboard
+        )
+
+
+# Boodschappen list delete item callback handler
+@dp.callback_query_handler(rvb_del_cd.filter(action=['boodschappen_delete_item']))
+async def rvb_list_callback(query: types.CallbackQuery):
+
+    await query.answer()
+
+    item_position = int(query.data.split('boodschappen_delete_item:')[1])
+
+    boodschappen_list = read_from_json(path=BOODSCHAPPEN_JSON)
+
+    item_subject = boodschappen_list['boodschappen'][item_position]['item']
+
+    boodschappen_list['boodschappen'].pop(item_position)
+
+    write_to_json(path=BOODSCHAPPEN_JSON, data=boodschappen_list)
+
+    keyboard = InlineKeyboardMarkup()
+    keyboard.row(types.InlineKeyboardButton(
+        '⬅️ Terug', callback_data=rvb_cd.new(action='boodschappen_list_edit')))
+
+    await bot.edit_message_text(
+        f'Item *{item_subject}* is verwijderd!',
+        query.message.chat.id,
+        query.message.message_id,
+        reply_markup=keyboard,
+        parse_mode=ParseMode.MARKDOWN
+    )
+
+
+''' 
+------------------------------------------------------------------------------- SHIFTS -------------------------------------------------------------------------------- 
+'''
+
+
+# WC shift callback handler
+@dp.callback_query_handler(wc_cd.filter(action=['wc_shift']))
+async def wc_shift_callback(query: types.CallbackQuery):
+
+    await query.answer()
+
+    shifts = read_from_json(path=WC_JSON)
+
+    # search for person with has_to_clean == true
+    for shift in shifts['shifts']:
+
+        if shift['has_to_clean'] == True:
+
+            has_to_clean = shift['name']
+
+    await bot.edit_message_text(
+        f'🚽 *{has_to_clean}* moet deze week de WC kuisen en de was doen. Veel kuisplezier!',
+        query.message.chat.id,
+        query.message.message_id,
+        reply_markup=get_wc_keyboard(),
+        parse_mode=ParseMode.MARKDOWN
+    )
+
+
+@dp.callback_query_handler(wc_cd.filter(action='next_wc_shift'))
+async def next_wc_shift_handler(query: types.CallbackQuery, callback_data: dict):
+
+    shifts = read_from_json(path=WC_JSON)
+
+    for index, shift in enumerate(shifts['shifts']):
+
+        if shift['has_to_clean'] == True:
+
+            shift['has_to_clean'] = False
+
+            if shifts['shifts'].index(shift) < len(shifts['shifts']) - 1:
+
+                shifts['shifts'][index+1]['has_to_clean'] = True
+                has_to_clean = shifts['shifts'][index+1]['name']
+            else:
+                shifts['shifts'][0]['has_to_clean'] = True
+                has_to_clean = shifts['shifts'][0]['name']
+
+            break
+
+    write_to_json(path=WC_JSON, data=shifts)
+
+    await bot.edit_message_text(f'🚽 *{has_to_clean}* moet deze week de WC kuisen. Veel kuisplezier!',
+                                query.message.chat.id,
+                                query.message.message_id,
+                                reply_markup=get_wc_keyboard(),
+                                parse_mode=ParseMode.MARKDOWN
+                                )
 
 
 # handle the cases when this exception raises
