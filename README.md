@@ -10,6 +10,8 @@ Telegram Bot that can perform various 'bestuurstaken'.
 - Payconiq integration.
     - Check daily, weekly, monthly and yearly totals.
     - Request QR-code.
+- SumUp integration.
+    - Check daily, weekly and monthly totals.
 - Sends weekly polls to bar staff.
 - Request general information.
     - E-mail, website, enterprise number and bank account number.
