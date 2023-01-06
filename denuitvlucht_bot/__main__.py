@@ -368,10 +368,6 @@ async def payconiq_callback(query: types.CallbackQuery, callback_data: typing.Di
 
     await query.answer()
 
-    with open('test.json', 'w') as f:
-        f.write(str(query))
-        f.close()
-
     if 'photo' in query.message:
 
         await bot.delete_message(
@@ -430,7 +426,7 @@ async def payconiq_totals_callback(query: types.CallbackQuery, callback_data: ty
     )
 
     sticker_totals_text = '\n\n'.join(
-        [f"{item['intervalType']}: *€{str(float(item['totals']['totalAmount']) / 100).replace('.', ',')}*\n-> {item['totals']['transactionCount']} transactie(s)" for item in sticker_totals])
+        [f"{item['intervalType']}: `€{str(float(item['totals']['totalAmount']) / 100).replace('.', ',')}`\n-> {item['totals']['transactionCount']} transactie(s)" for item in sticker_totals])
 
     app_to_app_totals = get_totals_from_payment_profile_id(
         SESSION=ids['session'],
@@ -438,10 +434,10 @@ async def payconiq_totals_callback(query: types.CallbackQuery, callback_data: ty
     )
 
     app_to_app_totals_text = '\n\n'.join(
-        [f"{item['intervalType']}: *€{str(float(item['totals']['totalAmount']) / 100).replace('.', ',')}*\n-> {item['totals']['transactionCount']} transactie(s)" for item in app_to_app_totals])
+        [f"{item['intervalType']}: `€{str(float(item['totals']['totalAmount']) / 100).replace('.', ',')}`\n-> {item['totals']['transactionCount']} transactie(s)" for item in app_to_app_totals])
 
     await bot.edit_message_text(
-        f'Dit is jullie Payconiq-overzicht:\n\nSticker:\n\n{sticker_totals_text}\n\nOnline:\n\n{app_to_app_totals_text}',
+        f'Dit is jullie Payconiq-overzicht:\n\n*Sticker:*\n\n{sticker_totals_text}\n\n*Online:*\n\n{app_to_app_totals_text}',
         query.message.chat.id,
         query.message.message_id,
         parse_mode=ParseMode.MARKDOWN,
@@ -512,9 +508,9 @@ async def sumup_totals_callback(query: types.CallbackQuery, callback_data: typin
         end_date=today.strftime('%Y-%m-%d')
     )
 
-    text = f"""*Totaal sinds gisteren:*\n€{transactions_since_yesterday["revenue"]}\n-> {transactions_since_yesterday["transaction_count"]} transacties\n\n
-*Totaal sinds begin van de week:*\n€{transactions_since_start_of_week["revenue"]}\n-> {transactions_since_start_of_week["transaction_count"]} transacties\n\n
-*Totaal sinds begin van de maand:*\n€{transactions_since_start_of_month["revenue"]}\n-> {transactions_since_start_of_month["transaction_count"]} transacties\n\n
+    text = f"""*Totaal sinds gisteren:*\n`€{transactions_since_yesterday["revenue"]}`\n-> {transactions_since_yesterday["transaction_count"]} transacties\n\n
+*Totaal sinds begin van de week:*\n`€{transactions_since_start_of_week["revenue"]}`\n-> {transactions_since_start_of_week["transaction_count"]} transacties\n\n
+*Totaal sinds begin van de maand:*\n`€{transactions_since_start_of_month["revenue"]}`\n-> {transactions_since_start_of_month["transaction_count"]} transacties\n\n
     """
 
     await bot.edit_message_text(text, query.message.chat.id, query.message.message_id, parse_mode=ParseMode.MARKDOWN, reply_markup=get_sumup_totals_keyboard())
@@ -985,7 +981,7 @@ async def wc_shift_callback(query: types.CallbackQuery):
             has_to_clean = shift['name']
 
     await bot.edit_message_text(
-        f'🚽 *{has_to_clean}* moet deze week de WC kuisen en de was doen. Veel kuisplezier!',
+        f'🚽 *{has_to_clean}* moet deze week volgende taakjes doen:\n\n- WC kuisen\n- Was naar wasserette\n- Glas naar glasbol',
         query.message.chat.id,
         query.message.message_id,
         reply_markup=get_wc_keyboard(),

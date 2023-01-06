@@ -17,7 +17,7 @@ def get_intro_keyboard():  # Main options for bestuur
                 '💵 Financieel', callback_data=financial_cd.new(action='financial_keyboard'))).row(types.InlineKeyboardButton(
                     '📖 RVB-puntjes', callback_data=rvb_cd.new(action='rvb_list'))).row(types.InlineKeyboardButton(
                         '🛒 Boodschappen', callback_data=rvb_cd.new(action='boodschappen_keyboard'))).row(types.InlineKeyboardButton(
-                            '🚽 WC en was shift', callback_data=wc_cd.new(action='wc_shift'))).row(types.InlineKeyboardButton(
+                            '🚽 Taakjes', callback_data=wc_cd.new(action='wc_shift'))).row(types.InlineKeyboardButton(
                                 'ℹ️ Algemene Info', callback_data=general_cd.new(action='general_info'))).row(types.InlineKeyboardButton(
                                     '❌ Sluiten', callback_data=general_cd.new(action='close'))
     )
