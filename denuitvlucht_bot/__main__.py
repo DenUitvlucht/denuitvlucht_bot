@@ -23,6 +23,7 @@ from data.json_helper import read_from_json, write_to_json
 from data.ffmpeg_helper import get_drankkot_snapshot
 
 from bot.keyboards.general.general_keyboards import get_intro_keyboard
+from bot.keyboards.general.general_keyboards import get_general_information_keyboard
 
 from bot.keyboards.brouwer.brouwer_keyboards import get_brouwer_keyboard
 from bot.keyboards.brouwer.brouwer_keyboards import get_brouwer_category_keyboard
@@ -129,7 +130,7 @@ async def general_info_callback(query: types.CallbackQuery, callback_data: typin
         query.message.chat.id,
         query.message.message_id,
         parse_mode=ParseMode.MARKDOWN,
-        reply_markup=get_rvb_list_keyboard_alt()
+        reply_markup=get_general_information_keyboard()
     )
 
 

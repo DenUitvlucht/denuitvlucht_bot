@@ -21,3 +21,14 @@ def get_intro_keyboard():  # Main options for bestuur
                                 'ℹ️ Algemene Info', callback_data=general_cd.new(action='general_info'))).row(types.InlineKeyboardButton(
                                     '❌ Sluiten', callback_data=general_cd.new(action='close'))
     )
+
+def get_general_information_keyboard(): 
+    return types.InlineKeyboardMarkup().row(types.InlineKeyboardButton('Uitleendienst Jeugd', url='https://www.waregem.be/formulieren/uitleendienst-jeugd')
+    ).row(types.InlineKeyboardButton('Activiteitenfiche aanvragen', url='https://www.waregem.be/formulieren/activiteitenfiche')
+    ).row(types.InlineKeyboardButton('Website Formaat', url='https://formaat.be/')
+    ).row(types.InlineKeyboardButton('Dekasound catalogus', url='https://www.dekasound.be/catalog')
+    ).row(types.InlineKeyboardButton('RoVaRi catalogus', url='https://www.rovari.be/verhuur-1')
+    ).row(types.InlineKeyboardButton('Wachtwoordenkluis', url='https://vault.bitwarden.com/#/login')
+    ).row(types.InlineKeyboardButton('⬅️ Terug', callback_data=rvb_cd.new(action='denuitvlucht'))
+    )
+    
