@@ -298,10 +298,19 @@ async def brouwer_edit_bestelling_callback(query: types.CallbackQuery, callback_
     unit_price = str(round(float(
         item['price_incl_btw']) + float(item['return_amount']), 2)).replace('.', ',')
 
-    prices = f'ℹ️ *Informatie:*\nAankoopprijs excl. BTW: `€{price_excl_btw}`\nAankoopprijs incl. BTW: `€{price_incl_btw}`\nLeeggoed: `€{return_amount}`\nTotale aankoopprijs (incl. + leeggoed): `€{unit_price}`\n\n'
-
     type = 'bak(ken)' if 'Liter' not in callback_data['name'] else 'vat(en)'
-    # prices = f'Prijs excl. BTW: `{callback_data["price_excl_btw"]}`\nPrijs incl. BTW `{callback_data["price_incl_btw"]}`'
+
+    if type == 'vat(en)':
+
+        selling_price_default = str(
+            item['selling_price_default']).replace('.', ',')
+        selling_price_members = str(
+            item['selling_price_members']).replace('.', ',')
+        prices = f'ℹ️ *Informatie:*\nAankoopprijs excl. BTW: `€{price_excl_btw}`\nAankoopprijs incl. BTW: `€{price_incl_btw}`\nLeeggoed: `€{return_amount}`\nTotale aankoopprijs (incl. + leeggoed): `€{unit_price}`\nVerkoopprijs niet-leden: `€{selling_price_default}`\nVerkoopprijs leden: `€{selling_price_members}`\n\n'
+
+    else:
+
+        prices = f'ℹ️ *Informatie:*\nAankoopprijs excl. BTW: `€{price_excl_btw}`\nAankoopprijs incl. BTW: `€{price_incl_btw}`\nLeeggoed: `€{return_amount}`\nTotale aankoopprijs (incl. + leeggoed): `€{unit_price}`\n\n'
 
     await bot.edit_message_text(f"{prices}Momenteel staan er *{callback_data['amount']}* {type} *{callback_data['name']}* in de bestelling",
                                 query.message.chat.id,
