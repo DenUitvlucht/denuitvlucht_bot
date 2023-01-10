@@ -47,6 +47,7 @@ sheet = workbook.active
 # FILL EXCEL FILE WITH AMOUNTS AND SAVE
 
 bakken_count = 0
+add_to_mail = None
 for category in bestelling_json:
 
     for item in bestelling_json[category]:
@@ -55,8 +56,14 @@ for category in bestelling_json:
 
             bakken_count += int(item['amount'])
 
-            sheet[item['excel_location']
-                  ] = item['amount']
+            if 'ADD_TO_MAIL' in item['excel_location']:
+
+                add_to_mail = item
+
+            else:
+
+                sheet[item['excel_location']
+                      ] = item['amount']
 
 if bakken_count < 15:
 
@@ -68,12 +75,15 @@ workbook.save(filename=BESTELLING_EXCEL_OUTPUT)
 
 check_credentials()
 
+# ADD EXTRAS TO EMAIL IF NEEDED
+extra_bekers = f'Ook hadden wij graag {add_to_mail["amount"]} stang(en) wegwerpbekers besteld.\n' if add_to_mail is not None else ''
+
 # SEND E-MAIL
 
 gmail_send_message_with_attachment(
     attachment=BESTELLING_EXCEL_OUTPUT,
     attachment_name=f'den_uitvlucht{next_tuesday_formatted}.xlsx',
-    message='Beste\n\nIn bijlage vindt u de bestelling voor volgende week.\n\nMet vriendelijke groeten\n\nTeam Den Uitvlucht',
+    message=f'Beste\n\nIn bijlage vindt u de bestelling voor volgende week.\n{extra_bekers}\nMet vriendelijke groeten\n\nTeam Den Uitvlucht\n\n',
     receiver=TO,
     sender=FROM,
     subject='Bestelling JH Den Uitvlucht',

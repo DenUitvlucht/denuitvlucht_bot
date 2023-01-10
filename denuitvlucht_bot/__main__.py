@@ -187,7 +187,7 @@ async def brouwer_callback(query: types.CallbackQuery, callback_data: typing.Dic
 
             if int(best['amount']) > 0:
 
-                type = 'bak(ken)' if 'Liter' not in best['name'] else 'vat(en)'
+                type = 'vat(en)' if 'Liter' in best['name'] else 'toren(s)' if 'bekers' in best['name'] else 'bak(ken)'
                 overzicht.append(
                     f'*- {best["name"]} | {best["amount"]} {type}*\n')
                 bakken_count += int(best['amount'])
@@ -298,7 +298,7 @@ async def brouwer_edit_bestelling_callback(query: types.CallbackQuery, callback_
     unit_price = str(round(float(
         item['price_incl_btw']) + float(item['return_amount']), 2)).replace('.', ',')
 
-    type = 'bak(ken)' if 'Liter' not in callback_data['name'] else 'vat(en)'
+    type = 'vat(en)' if 'Liter' in callback_data['name'] else 'toren(s)' if 'bekers' in callback_data['name'] else 'bak(ken)'
 
     if type == 'vat(en)':
 
@@ -325,8 +325,7 @@ async def vote_plus_cb_handler(query: types.CallbackQuery, callback_data: dict):
     category = callback_data['category']
     amount = int(callback_data['amount'])
     amount += 1
-
-    type = 'bak(ken)' if 'Liter' not in callback_data['name'] else 'vat(en)'
+    type = 'vat(en)' if 'Liter' in callback_data['name'] else 'toren(s)' if 'bekers' in callback_data['name'] else 'bak(ken)'
 
     await bot.edit_message_text(f'Aantal aangepast! Er staan nu *{amount}* {type} *{name}* in de bestelling.',
                                 query.message.chat.id,
@@ -342,7 +341,7 @@ async def vote_minus_cb_handler(query: types.CallbackQuery, callback_data: dict)
     category = callback_data['category']
     amount -= 1 if amount > 0 else 0
 
-    type = 'bak(ken)' if 'Liter' not in callback_data['name'] else 'vat(en)'
+    type = 'vat(en)' if 'Liter' in callback_data['name'] else 'toren(s)' if 'bekers' in callback_data['name'] else 'bak(ken)'
 
     if amount > -1:
 
