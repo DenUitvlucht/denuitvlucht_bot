@@ -191,7 +191,8 @@ async def brouwer_callback(query: types.CallbackQuery, callback_data: typing.Dic
 
             if int(best['amount']) > 0:
 
-                type = 'vat(en)' if 'Liter' in best['name'] else 'toren(s)' if 'bekers' in best['name'] else 'fles(sen)' if 'CO2' in best['name'] else'bak(ken)'
+                type = 'vat(en)' if 'Liter' in best['name'] else 'toren(s)' if 'bekers' in best[
+                    'name'] else 'fles(sen)' if 'CO2' in best['name'] else 'bak(ken)'
                 overzicht.append(
                     f'*- {best["name"]} | {best["amount"]} {type}*\n')
                 bakken_count += int(best['amount'])
@@ -302,7 +303,8 @@ async def brouwer_edit_bestelling_callback(query: types.CallbackQuery, callback_
     unit_price = str(round(float(
         item['price_incl_btw']) + float(item['return_amount']), 2)).replace('.', ',')
 
-    type = 'vat(en)' if 'Liter' in callback_data['name'] else 'toren(s)' if 'bekers' in callback_data['name'] else 'fles(sen)' if 'CO2' in callback_data['name'] else'bak(ken)'
+    type = 'vat(en)' if 'Liter' in callback_data['name'] else 'toren(s)' if 'bekers' in callback_data[
+        'name'] else 'fles(sen)' if 'CO2' in callback_data['name'] else 'bak(ken)'
 
     if type == 'vat(en)':
 
@@ -329,7 +331,8 @@ async def vote_plus_cb_handler(query: types.CallbackQuery, callback_data: dict):
     category = callback_data['category']
     amount = int(callback_data['amount'])
     amount += 1
-    type = 'vat(en)' if 'Liter' in callback_data['name'] else 'toren(s)' if 'bekers' in callback_data['name'] else 'fles(sen)' if 'CO2' in callback_data['name'] else'bak(ken)'
+    type = 'vat(en)' if 'Liter' in callback_data['name'] else 'toren(s)' if 'bekers' in callback_data[
+        'name'] else 'fles(sen)' if 'CO2' in callback_data['name'] else 'bak(ken)'
 
     await bot.edit_message_text(f'Aantal aangepast! Er staan nu *{amount}* {type} *{name}* in de bestelling.',
                                 query.message.chat.id,
@@ -345,7 +348,8 @@ async def vote_minus_cb_handler(query: types.CallbackQuery, callback_data: dict)
     category = callback_data['category']
     amount -= 1 if amount > 0 else 0
 
-    type = 'vat(en)' if 'Liter' in callback_data['name'] else 'toren(s)' if 'bekers' in callback_data['name'] else 'fles(sen)' if 'CO2' in callback_data['name'] else'bak(ken)'
+    type = 'vat(en)' if 'Liter' in callback_data['name'] else 'toren(s)' if 'bekers' in callback_data[
+        'name'] else 'fles(sen)' if 'CO2' in callback_data['name'] else 'bak(ken)'
 
     if amount > -1:
 
@@ -535,19 +539,21 @@ async def sumup_totals_callback(query: types.CallbackQuery, callback_data: typin
 
 # Add Form
 
+
 class Form(StatesGroup):
 
     puntje = State()  # Will be represented in storage as 'Form:puntje'
 
 # Add form handler
-@dp.message_handler(state=Form.puntje)
 
+
+@dp.message_handler(state=Form.puntje)
 async def process_name(message: types.Message, state: FSMContext):
 
     async with state.proxy() as data:
 
         data['puntje'] = message.text
-    
+
     await state.finish()
 
     await message.reply(f'✅ *Puntje: "{data["puntje"]}" is toegevoegd!*', parse_mode=ParseMode.MARKDOWN)
@@ -758,7 +764,8 @@ async def rvb_list_command(message: types.Message):
         if len(overzicht) > 0:
 
             keyboard = InlineKeyboardMarkup().row(types.InlineKeyboardButton('🖊️ Individuele items verwijderen', callback_data=rvb_cd.new(action='rvb_list_edit'))
-                                                  ).row(types.InlineKeyboardButton('🗑️ Volledige lijst wissen', callback_data=rvb_cd.new(action='wipe_rvb_list_confirmation')))
+                                                  ).row(types.InlineKeyboardButton('🗑️ Volledige lijst wissen', callback_data=rvb_cd.new(action='wipe_rvb_list_confirmation'))).row(types.InlineKeyboardButton(
+                                                      '❌ Sluiten', callback_data=general_cd.new(action='close')))
 
             await message.reply(
                 f'Dit zijn de RVB-puntjes van deze week:\n\n{"".join(overzicht)}',
