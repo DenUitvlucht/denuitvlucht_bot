@@ -67,7 +67,7 @@ def get_brouwer_category_keyboard_edit(name, amount, category):
 
     for optie in aanbod[category]:
 
-        type = 'vat(en)' if 'Liter' in optie['name'] else 'toren(s)' if 'bekers' in optie['name'] else 'bak(ken)'
+        type = 'vat(en)' if 'Liter' in optie['name'] else 'toren(s)' if 'bekers' in optie['name'] else 'fles(sen)' if 'CO2' in optie['name'] else'bak(ken)'
 
         keyboard.row(types.InlineKeyboardButton(
             text=f"{optie['name']} | €{str(round(float(optie['price_incl_btw']) + float(optie['return_amount']), 2)).replace('.',',')} | {optie['amount']} {type}", callback_data=item_cd.new(action=f'edit_item', name=optie['name'], amount=optie['amount'], category=category)))

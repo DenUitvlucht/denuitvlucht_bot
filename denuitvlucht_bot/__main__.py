@@ -14,6 +14,9 @@ from aiogram.types import InlineKeyboardMarkup, ParseMode
 from aiogram.utils.exceptions import MessageNotModified
 from aiogram.types.input_file import InputFile
 from aiogram.types.input_media import InputMediaPhoto
+from aiogram.dispatcher.filters.state import State, StatesGroup
+from aiogram.dispatcher import FSMContext
+from aiogram.contrib.fsm_storage.memory import MemoryStorage
 
 from payments.payconiq import payconiq_auth, get_payment_profile_ids, get_totals_from_payment_profile_id
 from payments.sumup import sumup_auth, get_access_token, get_refresh_token, get_sumup_transactions
@@ -76,7 +79,8 @@ logging.basicConfig(level=logging.INFO)
 
 # Initialize bot and dispatcher
 bot = Bot(token=API_TOKEN)
-dp = Dispatcher(bot)
+storage = MemoryStorage()
+dp = Dispatcher(bot, storage=storage)
 
 # Configure CallbackData
 general_cd = CallbackData('vote', 'action')
@@ -187,12 +191,12 @@ async def brouwer_callback(query: types.CallbackQuery, callback_data: typing.Dic
 
             if int(best['amount']) > 0:
 
-                type = 'vat(en)' if 'Liter' in best['name'] else 'toren(s)' if 'bekers' in best['name'] else 'bak(ken)'
+                type = 'vat(en)' if 'Liter' in best['name'] else 'toren(s)' if 'bekers' in best['name'] else 'fles(sen)' if 'CO2' in best['name'] else'bak(ken)'
                 overzicht.append(
                     f'*- {best["name"]} | {best["amount"]} {type}*\n')
                 bakken_count += int(best['amount'])
 
-    text = 'Dag brouwer,\n\n ⚠️ Momenteel staat er geen bestelling klaar.\n\n' if bakken_count == 0 else 'Dag brouwer,\n\n⚠️ Het aantal bakken van je bestelling ligt nog onder de 15! ⚠️\n\n' if bakken_count < 15 else 'Dag brouwer,\n\ndit is je huidige bestelling:\n\n'
+    text = 'Dag brouwer,\n\n ⚠️ Momenteel staat er geen bestelling klaar.\n\n' if bakken_count == 0 else 'Dag brouwer,\n\n⚠️ Het aantal bakken van je bestelling ligt nog onder de 15!\n\n' if bakken_count < 15 else 'Dag brouwer,\n\ndit is je huidige bestelling:\n\n'
     # text = 'Dag brouwer, dit is je huidige bestelling:\n\n' if bakken_count > 0 else 'Dag brouwer, momenteel staat er geen bestelling klaar.'
 
     if 'photo' in query.message:
@@ -298,7 +302,7 @@ async def brouwer_edit_bestelling_callback(query: types.CallbackQuery, callback_
     unit_price = str(round(float(
         item['price_incl_btw']) + float(item['return_amount']), 2)).replace('.', ',')
 
-    type = 'vat(en)' if 'Liter' in callback_data['name'] else 'toren(s)' if 'bekers' in callback_data['name'] else 'bak(ken)'
+    type = 'vat(en)' if 'Liter' in callback_data['name'] else 'toren(s)' if 'bekers' in callback_data['name'] else 'fles(sen)' if 'CO2' in callback_data['name'] else'bak(ken)'
 
     if type == 'vat(en)':
 
@@ -325,7 +329,7 @@ async def vote_plus_cb_handler(query: types.CallbackQuery, callback_data: dict):
     category = callback_data['category']
     amount = int(callback_data['amount'])
     amount += 1
-    type = 'vat(en)' if 'Liter' in callback_data['name'] else 'toren(s)' if 'bekers' in callback_data['name'] else 'bak(ken)'
+    type = 'vat(en)' if 'Liter' in callback_data['name'] else 'toren(s)' if 'bekers' in callback_data['name'] else 'fles(sen)' if 'CO2' in callback_data['name'] else'bak(ken)'
 
     await bot.edit_message_text(f'Aantal aangepast! Er staan nu *{amount}* {type} *{name}* in de bestelling.',
                                 query.message.chat.id,
@@ -341,7 +345,7 @@ async def vote_minus_cb_handler(query: types.CallbackQuery, callback_data: dict)
     category = callback_data['category']
     amount -= 1 if amount > 0 else 0
 
-    type = 'vat(en)' if 'Liter' in callback_data['name'] else 'toren(s)' if 'bekers' in callback_data['name'] else 'bak(ken)'
+    type = 'vat(en)' if 'Liter' in callback_data['name'] else 'toren(s)' if 'bekers' in callback_data['name'] else 'fles(sen)' if 'CO2' in callback_data['name'] else'bak(ken)'
 
     if amount > -1:
 
@@ -529,6 +533,35 @@ async def sumup_totals_callback(query: types.CallbackQuery, callback_data: typin
 ------------------------------------------------------------------------------- RVB -----------------------------------------------------------------------------------
 '''
 
+# Add Form
+
+class Form(StatesGroup):
+
+    puntje = State()  # Will be represented in storage as 'Form:puntje'
+
+# Add form handler
+@dp.message_handler(state=Form.puntje)
+
+async def process_name(message: types.Message, state: FSMContext):
+
+    async with state.proxy() as data:
+
+        data['puntje'] = message.text
+    
+    await state.finish()
+
+    await message.reply(f'✅ *Puntje: "{data["puntje"]}" is toegevoegd!*', parse_mode=ParseMode.MARKDOWN)
+
+    rvb_list = read_from_json(path=RVB_JSON)
+    rvb_list['puntjes'].append({
+        'subject': data["puntje"],
+        'date': str(datetime.datetime.today().strftime("%d/%m/%Y")),
+        'who': f'{message.from_user.first_name}'
+    })
+
+    write_to_json(path=RVB_JSON, data=rvb_list)
+
+
 # Add command handler
 
 
@@ -541,7 +574,8 @@ async def cmd_add(message: types.Message):
 
         if len(args) == 1:
 
-            await message.reply(f'⚠️ *Vergeet je puntje niet te vermelden!*', parse_mode=ParseMode.MARKDOWN)
+            await Form.puntje.set()
+            await message.reply(f'👇 *Dag bestuurslid, wat wil je toevoegen aan de lijst?*', parse_mode=ParseMode.MARKDOWN)
 
         elif len(args) > 1:
 
